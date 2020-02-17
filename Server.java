@@ -1,32 +1,28 @@
 import java.util.*;
 import java.net.*;
 
-public class Server extends Thread {
-    static SecureConnection connection;
-
+public class Server extends Connection {
     public static void main(String args[]) {
-        (new Server()).start();
-    }
-
-    public Server() { System.out.println("Server thread online"); }
-
-    public void run() {
-        boolean running = true;
-
-        while (running) {
-            DatagramPacket packet = new DatagramPacket(new byte[256], 256);
+        while (true) {
             try {
-                connection.socket.receive(packet);
+                DatagramPacket packet = new DatagramPacket(new byte[256], 256);
+                socket.receive(packet);
+                (new ServerThread(packet)).start();
+
             } catch (Exception e) {
 
             }
-
-            InetAddress address = packet.getAddress();
-            packet = new DatagramPacket(new byte[256], 256, address, connection.port);
-            String received = new String(packet.getData(), 0, packet.getLength());
-
-            System.out.println(received);
         }
-        connection.socket.close();
+    }
+}
+
+class ServerThread extends Thread {
+    public ServerThread(DatagramPacket packet) {
+        InetAddress address = packet.getAddress();
+        Protocol protocol = new Protocol(packet.getData());
+    }
+
+    public void run() {
+
     }
 }

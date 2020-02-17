@@ -50,7 +50,12 @@ public class Client {
     }
 }
 
-// Chat commands can be anything but the parameters need to be of type String for some reason
+/*
+ * Chat commands can be anything but the parameters need to be of type String for some reason
+ * Must be in the form:
+ *      @Command(parameters = {"arg0", "arg1", ..}, description = "Lorem ipsum dolor sit amet")
+ *      static void MethodName(String arg0, String arg1, ..) {
+ */
 @Retention(RetentionPolicy.RUNTIME)
 @interface Command { String[] parameters(); String description(); }
 class ChatCommands {
@@ -98,8 +103,11 @@ class ChatCommands {
     @Command(parameters = {"name"}, description = "")
     static void join(String name) { System.out.println("User joined " + name + "'s chat!"); }
 
-    @Command(parameters = {"name", "other"}, description = "")
-    static void query(String name, String other) { System.out.println(name + " " + other); }
+    @Command(parameters = {}, description = "")
+    static void query() { System.out.println("Thing"); }
+
+    @Command(parameters = {}, description = "")
+    static void accept() { System.out.println("Thing"); }
 
     @Command(parameters = {}, description = "")
     static void exit() { System.out.println("User exited chat!"); }
