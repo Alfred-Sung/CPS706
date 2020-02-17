@@ -3,7 +3,15 @@ import java.util.*;
 import java.net.*;
 import java.lang.reflect.*;
 
-public class Client {
+/**
+ * Client-side script that only handles application-level processes
+ * ie. IO handling, chat commands, etc.
+ */
+// TODO: Everything
+// TODO: Client-server interactions
+// TODO: Create ClientConnection once server connection is established
+// TODO: Finish chat command methods
+public class Client extends Connection {
     static String nickname;
 
     static ClientConnection client;
@@ -25,10 +33,8 @@ public class Client {
             System.out.println(server.connect(serverIP) ? "Server connected!" : "Invalid server IP");
         }
 
-/*
         System.out.print("Enter nickname: ");
         nickname = input.nextLine();
-*/
 
         while (true) {
             String query;
@@ -50,7 +56,7 @@ public class Client {
     }
 }
 
-/*
+/**
  * Chat commands can be anything but the parameters need to be of type String for some reason
  * Must be in the form:
  *      @Command(parameters = {"arg0", "arg1", ..}, description = "Lorem ipsum dolor sit amet")
@@ -100,6 +106,7 @@ class ChatCommands {
         return result;
     }
 
+    // TODO: Must accept nickname or IP address
     @Command(parameters = {"name"}, description = "")
     static void join(String name) { System.out.println("User joined " + name + "'s chat!"); }
 
@@ -108,6 +115,9 @@ class ChatCommands {
 
     @Command(parameters = {}, description = "")
     static void accept() { System.out.println("Thing"); }
+
+    @Command(parameters = {}, description = "")
+    static void decline() { System.out.println("Thing"); }
 
     @Command(parameters = {}, description = "")
     static void exit() { System.out.println("User exited chat!"); }

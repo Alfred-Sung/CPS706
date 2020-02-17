@@ -1,5 +1,9 @@
 import java.util.HashMap;
 
+/**
+ * HTTP-like protocol that is attached to every packet sent; client-client and client-server
+ */
+// TODO: Implement fragmented packets
 public class Protocol {
     public final int LENGTH = 80;
     Status status;
@@ -7,6 +11,8 @@ public class Protocol {
 
     String hostName;
     String nickName;
+
+    String data;
 
     public Protocol(Status status) {
         this.status = status;
@@ -19,6 +25,10 @@ public class Protocol {
         return result;
     }
 
+    /**
+     * Status codes that the packet protocols use
+     * Each status contains a unique number
+     */
     public enum Status {
         // General status codes
         OK(200), ERROR(400), BADENCRYPT(600),
