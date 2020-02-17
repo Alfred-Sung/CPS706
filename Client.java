@@ -112,6 +112,11 @@ class ChatCommands {
     @Command(parameters = {}, description = "")
     static void exit() { System.out.println("User exited chat!"); }
 
+    @Command(parameters = {}, description = "")
+    static void logoff() {
+        // IMPORTANT: Must send 4 EXIT and 2 OFFLINE
+    }
+
     @Command(parameters = {}, description = "Lists all available chat commands")
     static void help() {
         for (Method m : methods) { System.out.println(getMethodDescription(m));}
