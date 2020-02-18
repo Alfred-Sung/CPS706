@@ -40,12 +40,5 @@ class ClientServerThread extends Thread {
     public ClientServerThread(DatagramPacket packet) {
         InetAddress address = packet.getAddress();
         Protocol protocol = new Protocol(packet.getData());
-
-        switch (protocol.status) {
-            case POST:
-                break;
-            default:
-                // Respond with 400 ERROR
-        }
     }
 }

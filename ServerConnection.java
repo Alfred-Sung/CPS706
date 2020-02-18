@@ -11,6 +11,10 @@ public class ServerConnection extends Connection {
     static InetAddress serverAddress;
 
     public boolean connect(String serverIP) {
+        /*
+        Protocol protocol = new Protocol(Protocol.Status.ONLINE,);
+        DatagramPacket packet = new DatagramPacket()
+        */
         return false;
     }
 

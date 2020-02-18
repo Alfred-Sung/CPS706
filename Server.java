@@ -52,7 +52,7 @@ class ServerThread extends Thread {
 
     public ServerThread(DatagramPacket packet) {
         address = packet.getAddress();
-        protocol = new Protocol(packet.getData());
+        //protocol = Protocol.construct();
     }
 
     public void run() {
@@ -62,6 +62,8 @@ class ServerThread extends Thread {
             case OFFLINE:
                 break;
             case JOIN:
+                break;
+            case EXIT:
                 break;
             case QUERY:
                 break;
@@ -76,6 +78,9 @@ class ServerThread extends Thread {
 /**
  * Data class that holds all the information the server needs for a chatroom
  */
+
+// TODO: Store user log-in time
+// TODO: Calculate popularity within users 1 hour log-in time
 class Chatroom {
     String nickname;
     String hostname;
