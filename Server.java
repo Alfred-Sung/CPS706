@@ -15,6 +15,9 @@ public class Server extends Connection {
     private static HashMap<byte[], Chatroom> userList = new HashMap<byte[], Chatroom>();
 
     public static void main(String args[]) {
+        nickName = "Server";
+        System.out.println("Server online!");
+
         while (true) {
             try {
                 DatagramPacket packet = new DatagramPacket(new byte[256], 256);
@@ -48,30 +51,45 @@ public class Server extends Connection {
  */
 class ServerThread extends Thread {
     InetAddress address;
-    Protocol protocol;
+    Protocol inbound;
 
     public ServerThread(DatagramPacket packet) {
         address = packet.getAddress();
-        //protocol = Protocol.construct();
+        inbound = new Protocol(packet.getData());
+
+        System.out.println("Packet from: " + address.getAddress());
     }
 
     public void run() {
-        switch (protocol.status) {
-            case ONLINE:
-                break;
-            case OFFLINE:
-                break;
-            case JOIN:
-                break;
-            case EXIT:
-                break;
-            case QUERY:
-                break;
-            default:
-                // Respond with 400 ERROR
+        System.out.println(inbound.toString());
+
+        try {
+            switch (inbound.status) {
+                case ONLINE:
+                    Server.socket.send(acknowledge());
+                    break;
+                case OFFLINE:
+                    break;
+                case JOIN:
+                    break;
+                case EXIT:
+                    break;
+                case QUERY:
+                    break;
+                default:
+                    // Respond with 400 ERROR
+            }
+        } catch (Exception e) {
+            System.out.println("!!! THREAD ERROR: " + e + " !!!");
         }
 
+        System.out.println("");
         //Server.closeThread();
+    }
+
+    DatagramPacket acknowledge() {
+        Protocol outbound = new Protocol(Protocol.Status.OK);
+        return new DatagramPacket(outbound.getBytes(), Protocol.LENGTH, address, Server.PORT);
     }
 }
 
