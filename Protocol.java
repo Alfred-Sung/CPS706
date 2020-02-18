@@ -6,7 +6,7 @@ import java.util.*;
  */
 // TODO: Implement fragmented packets
 public class Protocol {
-    public final int LENGTH = 80;
+    public static final int LENGTH = 80;
     Status status; //4 bytes
     Integer sequence; //4 bytes
 
@@ -27,9 +27,9 @@ public class Protocol {
         List<Protocol> fragments = new LinkedList<>();
         String[] dataFragments = data.split("(?<=\\G.{40})");
 
-        fragments.add(new Protocol(status, 0, hostName, nickName, String.valueOf(dataFragments.length)));
+        fragments.add(new Protocol(status, 0, String.valueOf(dataFragments.length)));
         for (int i = 0; i < dataFragments.length; i++) {
-            fragments.add(new Protocol(status, i + 1, hostName, nickName, dataFragments[i]));
+            fragments.add(new Protocol(status, i + 1, dataFragments[i]));
         }
 
         return fragments.toArray(new Protocol[0]);
@@ -46,15 +46,17 @@ public class Protocol {
         return result.toString();
     }
 
-    public Protocol(Status status, int index, String hostName, String nickName, String data) {
+    private Protocol(Status status, int index, String data) {
         this.status = status;
         this.sequence = index;
 
-        this.hostName = hostName.substring(0, Math.min(hostName.length(), 16));
-        this.nickName = nickName.substring(0, Math.min(nickName.length(), 16));
+        this.hostName = Connection.hostName.substring(0, Math.min(Connection.hostName.length(), 16));
+        this.nickName = Connection.nickName.substring(0, Math.min(Connection.nickName.length(), 16));
 
         this.data = data.substring(0, Math.min(data.length(), 40));
     }
+
+    public Protocol(Status status) { this(status, 0, "0"); }
 
     public Protocol(byte[] data) {
         ByteBuffer buffer = ByteBuffer.wrap(data);
