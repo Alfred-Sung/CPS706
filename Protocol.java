@@ -15,15 +15,14 @@ public class Protocol {
 
     String data; //40 bytes
 
+    public static Protocol create(Status status) { return new Protocol(status, 0, "0"); }
+    public static Protocol create(byte[] data) { return new Protocol(data); }
+    public static Protocol[] create(Status status, String hostName, String nickName, String data) { return split(status, hostName, nickName, data); }
+
     /**
      * When Protocol packets are split, the leading Protocol (sequence number: 0) will contain the number of subsequent packets in the data field
-     * @param status
-     * @param hostName
-     * @param nickName
-     * @param data
-     * @return
      */
-    public static Protocol[] split(Status status, String hostName, String nickName, String data) {
+    private static Protocol[] split(Status status, String hostName, String nickName, String data) {
         List<Protocol> fragments = new LinkedList<>();
         String[] dataFragments = data.split("(?<=\\G.{40})");
 
@@ -56,9 +55,7 @@ public class Protocol {
         this.data = data.substring(0, Math.min(data.length(), 40));
     }
 
-    public Protocol(Status status) { this(status, 0, "0"); }
-
-    public Protocol(byte[] data) {
+    private Protocol(byte[] data) {
         ByteBuffer buffer = ByteBuffer.wrap(data);
 
         this.status = Status.valueOf(buffer.getInt(0));

@@ -39,6 +39,6 @@ class ClientServer extends Thread {
 class ClientServerThread extends Thread {
     public ClientServerThread(DatagramPacket packet) {
         InetAddress address = packet.getAddress();
-        Protocol protocol = new Protocol(packet.getData());
+        Protocol protocol = Protocol.create(packet.getData());
     }
 }

@@ -11,7 +11,7 @@ import java.lang.reflect.*;
 // TODO: Client-server interactions
 // TODO: Create ClientConnection once server connection is established
 // TODO: Finish chat command methods
-public class Client extends Connection {
+public class Client {
     static ClientConnection client;
     static ServerConnection server;
 
@@ -28,11 +28,13 @@ public class Client extends Connection {
                 serverIP = input.nextLine();
 
                 System.out.print("Enter nickname: ");
-                nickName = input.nextLine();
+                Connection.nickName = input.nextLine();
             } while (serverIP.equals(""));
 
-            System.out.println(server.connect(serverIP, nickName) ? "Server connected!" : "Invalid server IP");
+            System.out.println(server.connect(serverIP, Connection.nickName) ? "Server connected!" : "Invalid server IP");
         }
+
+        System.out.println(server.getDirectory());
 
         while (true) {
             String query;

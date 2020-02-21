@@ -8,11 +8,11 @@ import java.net.*;
  */
 // TODO: Respond to incoming requests
 // TODO: Handle fragmented packets
-public class Server extends Connection {
+public class Server extends UDPConnection {
     // <IP Address, ServerThread>
-    private static HashMap<byte[], ServerThread> threads = new HashMap<byte[], ServerThread>();
+    private static HashMap<InetAddress, ServerThread> threads = new HashMap<InetAddress, ServerThread>();
     static int totalUsers;
-    private static HashMap<byte[], Chatroom> userList = new HashMap<byte[], Chatroom>();
+    public static HashMap<InetAddress, Profile> userList = new HashMap<InetAddress, Profile>();
 
     public static void main(String args[]) {
         nickName = "Server";
@@ -32,10 +32,10 @@ public class Server extends Connection {
         }
     }
 
-    public static String getUserList() {
+    public static String printUserList() {
         StringBuilder result = new StringBuilder("User\tIP\tChatroom\tPopularity\n");
 
-        for (Chatroom c : userList.values()) {
+        for (Profile c : userList.values()) {
             result.append(c.getRecord() + '\n');
         }
 
@@ -55,7 +55,7 @@ class ServerThread extends Thread {
 
     public ServerThread(DatagramPacket packet) {
         address = packet.getAddress();
-        inbound = new Protocol(packet.getData());
+        inbound = Protocol.create(packet.getData());
 
         System.out.println("Packet from: " + address.getAddress());
     }
@@ -66,9 +66,11 @@ class ServerThread extends Thread {
         try {
             switch (inbound.status) {
                 case ONLINE:
-                    Server.socket.send(acknowledge());
+                    Server.userList.put(address, new Profile(address, inbound));
+                    Server.send(Protocol.Status.OK, address);
                     break;
                 case OFFLINE:
+                    Server.socket.send(acknowledge());
                     break;
                 case JOIN:
                     break;
@@ -88,7 +90,7 @@ class ServerThread extends Thread {
     }
 
     DatagramPacket acknowledge() {
-        Protocol outbound = new Protocol(Protocol.Status.OK);
+        Protocol outbound = Protocol.create(Protocol.Status.OK);
         return new DatagramPacket(outbound.getBytes(), Protocol.LENGTH, address, Server.PORT);
     }
 }
@@ -99,21 +101,23 @@ class ServerThread extends Thread {
 
 // TODO: Store user log-in time
 // TODO: Calculate popularity within users 1 hour log-in time
-class Chatroom {
+class Profile {
     String nickname;
     String hostname;
     String IP;
-    int port;
     String chatName;
     int activeUsers;
 
-    public Chatroom(String nickname, String hostname, String IP, int port, String chatName, int activeUsers) {
+    public Profile(InetAddress address, Protocol protocol) {
+        this(protocol.nickName, address.getHostName(), new String(address.getAddress()));
+    }
+
+    public Profile(String nickname, String hostname, String IP) {
         this.nickname = nickname;
         this.hostname = hostname;
         this.IP = IP;
-        this.port = port;
-        this.chatName = chatName;
-        this.activeUsers = activeUsers;
+        this.chatName = "";
+        this.activeUsers = 0;
     }
 
     public String getRecord() {
