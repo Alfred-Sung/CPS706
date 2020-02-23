@@ -23,10 +23,15 @@ public class Server extends UDPConnection {
             try {
                 DatagramPacket packet = new DatagramPacket(new byte[Protocol.LENGTH], Protocol.LENGTH);
                 socket.receive(packet);
+                InetAddress address = packet.getAddress();
 
-                ServerThread thread = new ServerThread(packet);
-                threads.put(packet.getAddress(), thread);
-                thread.start();
+                if (threads.containsKey(address)) {
+                    System.out.println("Test");
+                } else {
+                    ServerThread thread = new ServerThread(packet);
+                    threads.put(packet.getAddress(), thread);
+                    thread.start();
+                }
             } catch (Exception e) {
                 System.out.println(e);
             }
@@ -43,7 +48,10 @@ public class Server extends UDPConnection {
         return result.toString();
     }
 
-    public static void closeThread(byte[] thread) { threads.remove(thread); }
+    public static void closeThread(InetAddress address) {
+        System.out.println("Thread closed\n");
+        threads.remove(address);
+    }
 }
 
 /**
@@ -70,10 +78,12 @@ class ServerThread extends Thread {
                     Profile user = new Profile(address, inbound);
                     Server.userList.put(address, user);
                     System.out.println("Added new record: " + user.getRecord());
+
                     acknowledge();
                     break;
                 case OFFLINE:
                     Server.userList.remove(address);
+
                     acknowledge();
                     break;
                 case JOIN:
@@ -83,6 +93,8 @@ class ServerThread extends Thread {
                     acknowledge();
                     break;
                 case QUERY:
+                    acknowledge();
+
                     Server.send(Protocol.Status.OK, address, Server.printUserList());
                     System.out.println("OK!");
                     break;
@@ -92,9 +104,7 @@ class ServerThread extends Thread {
         } catch (Exception e) {
             System.out.println("!!! THREAD ERROR: " + e + " !!!");
         }
-
-        System.out.println("");
-        //Server.closeThread();
+        Server.closeThread(address);
     }
 
     void acknowledge() {
@@ -121,10 +131,10 @@ class Profile {
     String chatName;
     int activeUsers;
 
-    LocalDateTime login;
+    //LocalDateTime login;
 
     public Profile(InetAddress address, Protocol protocol) {
-        this(protocol.nickName, address.getCanonicalHostName(), address.toString());
+        this(protocol.nickName, protocol.hostName, address.toString());
     }
 
     public Profile(String nickname, String hostname, String IP) {
