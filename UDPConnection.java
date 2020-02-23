@@ -34,10 +34,11 @@ public abstract class UDPConnection extends Connection {
     public static boolean send(Protocol.Status status, InetAddress address, String message) {
         int failed = 0;
         Protocol[] outbound = Protocol.create(status, message);
-
+        System.out.println(outbound.length);
         for (int i = 0; i < outbound.length; i++) {
             try {
                 DatagramPacket packet = new DatagramPacket(outbound[i].getBytes(), Protocol.LENGTH, address, Server.PORT);
+                System.out.println("Sent packet");
                 socket.send(packet);
 
                 socket.setSoTimeout(TIMEOUT);
@@ -55,7 +56,8 @@ public abstract class UDPConnection extends Connection {
                 }
             } catch (Exception e) {
                 i--;
-                if ((failed++) > MAXREPEAT) { return false; }
+                failed++;
+                if (failed > MAXREPEAT) { return false; }
             }
         }
 

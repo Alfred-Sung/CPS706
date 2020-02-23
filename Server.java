@@ -58,7 +58,7 @@ class ServerThread extends Thread {
         address = packet.getAddress();
         inbound = Protocol.create(packet.getData());
 
-        System.out.println("Packet from: " + new String(address.getAddress()));
+        System.out.println("Packet from: " + address);
     }
 
     public void run() {
@@ -67,17 +67,24 @@ class ServerThread extends Thread {
         try {
             switch (inbound.status) {
                 case ONLINE:
-                    Server.userList.put(address, new Profile(address, inbound));
-                    Server.send(Protocol.Status.OK, address);
+                    Profile user = new Profile(address, inbound);
+                    Server.userList.put(address, user);
+                    System.out.println("Added new record: " + user.getRecord());
+                    acknowledge();
                     break;
                 case OFFLINE:
-                    Server.socket.send(acknowledge());
+                    Server.userList.remove(address);
+                    acknowledge();
                     break;
                 case JOIN:
+                    acknowledge();
                     break;
                 case EXIT:
+                    acknowledge();
                     break;
                 case QUERY:
+                    Server.send(Protocol.Status.OK, address, Server.printUserList());
+                    System.out.println("OK!");
                     break;
                 default:
                     // Respond with 400 ERROR
@@ -90,9 +97,15 @@ class ServerThread extends Thread {
         //Server.closeThread();
     }
 
-    DatagramPacket acknowledge() {
-        Protocol outbound = Protocol.create(Protocol.Status.OK);
-        return new DatagramPacket(outbound.getBytes(), Protocol.LENGTH, address, Server.PORT);
+    void acknowledge() {
+        try {
+            System.out.println("Acknowledged!");
+            Protocol response = Protocol.create(Protocol.Status.OK);
+            DatagramPacket packet = new DatagramPacket(response.getBytes(), Protocol.LENGTH, address, Connection.PORT);
+            Server.socket.send(packet);
+        } catch (Exception e) {
+            System.out.println(e);
+        }
     }
 }
 
@@ -111,7 +124,7 @@ class Profile {
     LocalDateTime login;
 
     public Profile(InetAddress address, Protocol protocol) {
-        this(protocol.nickName, address.getHostName(), new String(address.getAddress()));
+        this(protocol.nickName, address.getCanonicalHostName(), address.toString());
     }
 
     public Profile(String nickname, String hostname, String IP) {
@@ -121,7 +134,7 @@ class Profile {
         this.chatName = "";
         this.activeUsers = 0;
 
-        this.login = LocalDateTime.now();
+        //this.login = LocalDateTime.now();
     }
 
     public String getRecord() {
