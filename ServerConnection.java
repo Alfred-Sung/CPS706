@@ -10,45 +10,23 @@ import java.util.HashMap;
 public class ServerConnection extends UDPConnection {
     static InetAddress serverAddress;
 
-    public boolean connect(String serverIP, String nickName) {
+    public boolean connect(String serverIP) {
         try {
             serverAddress = InetAddress.getByName(serverIP);
-            Protocol protocol = Protocol.create(Protocol.Status.ONLINE);
-
-            DatagramPacket packet = new DatagramPacket(protocol.getBytes(), Protocol.LENGTH, serverAddress, PORT);
-            socket.send(packet);
-
-            packet = new DatagramPacket(new byte[Protocol.LENGTH], Protocol.LENGTH);
-            socket.receive(packet);
-            Protocol response = Protocol.create(packet.getData());
-
-            if (response.status == Protocol.Status.OK) { return true; }
+            return send(Protocol.Status.ONLINE, serverAddress);
         } catch (Exception e) {
-            System.out.println(e);
             return false;
         }
-
-        return true;
     }
 
     public String getDirectory() {
         try {
-            Protocol protocol = Protocol.create(Protocol.Status.QUERY);
-
-            DatagramPacket packet = new DatagramPacket(protocol.getBytes(), Protocol.LENGTH, serverAddress, PORT);
-            socket.send(packet);
-
-            packet = new DatagramPacket(new byte[Protocol.LENGTH], Protocol.LENGTH);
-            socket.receive(packet);
-            Protocol response = Protocol.create(packet.getData());
-
-            if (response.status == Protocol.Status.OK) { return ""; }
+            send(Protocol.Status.QUERY, serverAddress);
+            return receive();
         } catch (Exception e) {
             System.out.println(e);
             return "";
         }
-
-        return "";
     }
 
     public void joinChat() {}

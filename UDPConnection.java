@@ -9,31 +9,24 @@ import java.util.concurrent.TimeoutException;
 // TODO: Handle resending packets
 public abstract class UDPConnection extends Connection {
     public static boolean send(Protocol.Status status, InetAddress address) {
-        int failed = 0;
-        Protocol outbound = Protocol.create(status);
-
-        do {
+        for (int i = 0; i < MAXREPEAT; i++) {
             try {
-                DatagramPacket packet = new DatagramPacket(outbound.getBytes(), Protocol.LENGTH, address, Server.PORT);
+                Protocol protocol = Protocol.create(status);
+
+                DatagramPacket packet = new DatagramPacket(protocol.getBytes(), Protocol.LENGTH, address, PORT);
                 socket.send(packet);
 
                 socket.setSoTimeout(TIMEOUT);
 
                 packet = new DatagramPacket(new byte[Protocol.LENGTH], Protocol.LENGTH);
                 socket.receive(packet);
-
                 Protocol response = Protocol.create(packet.getData());
 
-                switch (response.status) {
-                    case OK:
-                        break;
-                    case ERROR:
-                        return false;
-                }
+                if (response.status == Protocol.Status.OK) { return true; }
             } catch (Exception e) {
-                failed++;
+                return false;
             }
-        } while (failed < MAXREPEAT);
+        }
 
         return true;
     }
@@ -80,8 +73,6 @@ public abstract class UDPConnection extends Connection {
         for (int i = 0; i < packets - 1; i++) {
             socket.receive(packet);
             send(Protocol.Status.OK, packet.getAddress());
-
-
         }
 
         return Protocol.constructData(fragments);

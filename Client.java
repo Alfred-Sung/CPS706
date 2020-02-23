@@ -21,18 +21,22 @@ public class Client {
 
         System.out.println("Welcome to Chat");
 
-        while (server.serverAddress == null) {
-            String serverIP = "";
+        String serverIP = "";
+        boolean validServer = false;
+        do {
             do {
                 System.out.print("Enter server IP: ");
                 serverIP = input.nextLine();
-
-                System.out.print("Enter nickname: ");
-                Connection.nickName = input.nextLine();
             } while (serverIP.equals(""));
 
-            System.out.println(server.connect(serverIP, Connection.nickName) ? "Server connected!" : "Invalid server IP");
-        }
+            do {
+                System.out.print("Enter nickname: ");
+                Connection.nickName = input.nextLine();
+            } while (Connection.nickName.equals(""));
+
+            validServer = server.connect(serverIP);
+            System.out.println(validServer ? "Server connected!" : "Bad server IP");
+        } while (!validServer);
 
         System.out.println(server.getDirectory());
 
