@@ -17,12 +17,12 @@ public class Protocol {
 
     public static Protocol create(Status status) { return new Protocol(status, 0, "0"); }
     public static Protocol create(byte[] data) { return new Protocol(data); }
-    public static Protocol[] create(Status status, String hostName, String nickName, String data) { return split(status, hostName, nickName, data); }
+    public static Protocol[] create(Status status, String data) { return split(status, data); }
 
     /**
      * When Protocol packets are split, the leading Protocol (sequence number: 0) will contain the number of subsequent packets in the data field
      */
-    private static Protocol[] split(Status status, String hostName, String nickName, String data) {
+    private static Protocol[] split(Status status, String data) {
         List<Protocol> fragments = new LinkedList<>();
         String[] dataFragments = data.split("(?<=\\G.{40})");
 

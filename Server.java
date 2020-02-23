@@ -1,5 +1,6 @@
 import java.util.*;
 import java.net.*;
+import java.time.LocalDateTime;
 
 /**
  * Server-side script that handles client-server communication
@@ -20,11 +21,11 @@ public class Server extends UDPConnection {
 
         while (true) {
             try {
-                DatagramPacket packet = new DatagramPacket(new byte[256], 256);
+                DatagramPacket packet = new DatagramPacket(new byte[Protocol.LENGTH], Protocol.LENGTH);
                 socket.receive(packet);
 
                 ServerThread thread = new ServerThread(packet);
-                //threads.put(, thread);
+                threads.put(packet.getAddress(), thread);
                 thread.start();
             } catch (Exception e) {
                 System.out.println(e);
@@ -57,7 +58,7 @@ class ServerThread extends Thread {
         address = packet.getAddress();
         inbound = Protocol.create(packet.getData());
 
-        System.out.println("Packet from: " + address.getAddress());
+        System.out.println("Packet from: " + new String(address.getAddress()));
     }
 
     public void run() {
@@ -99,7 +100,6 @@ class ServerThread extends Thread {
  * Data class that holds all the information the server needs for a chatroom
  */
 
-// TODO: Store user log-in time
 // TODO: Calculate popularity within users 1 hour log-in time
 class Profile {
     String nickname;
@@ -107,6 +107,8 @@ class Profile {
     String IP;
     String chatName;
     int activeUsers;
+
+    LocalDateTime login;
 
     public Profile(InetAddress address, Protocol protocol) {
         this(protocol.nickName, address.getHostName(), new String(address.getAddress()));
@@ -118,6 +120,8 @@ class Profile {
         this.IP = IP;
         this.chatName = "";
         this.activeUsers = 0;
+
+        this.login = LocalDateTime.now();
     }
 
     public String getRecord() {
