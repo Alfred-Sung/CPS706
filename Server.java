@@ -14,6 +14,7 @@ public class Server extends UDPConnection {
     private static HashMap<InetAddress, ServerThread> threads = new HashMap<InetAddress, ServerThread>();
     static int totalUsers;
     public static HashMap<InetAddress, Profile> userList = new HashMap<InetAddress, Profile>();
+    public static Object monitor = new Object();
 
     public static void main(String args[]) {
         nickName = "Server";
@@ -26,9 +27,7 @@ public class Server extends UDPConnection {
                 InetAddress address = packet.getAddress();
 
                 if (threads.containsKey(address)) {
-                    ServerThread thread = threads.get(address);
-                    thread.pass(packet);
-                    if (!thread.locked) { thread.notify(); }
+                    threads.get(address).pass(packet);
                 } else {
                     ServerThread thread = new ServerThread(packet);
                     threads.put(address, thread);
@@ -54,8 +53,6 @@ public class Server extends UDPConnection {
         System.out.println("Thread closed\n");
         threads.remove(address);
     }
-
-    public static void suspend(ServerThread thread) { try { thread.wait(); } catch (Exception e) {} }
 }
 
 /**
@@ -63,8 +60,6 @@ public class Server extends UDPConnection {
  * Services request and sends back a response to client
  */
 class ServerThread extends Thread {
-    public boolean locked = false;
-
     InetAddress address;
     Protocol protocol;
     Protocol[] fragments;
@@ -77,61 +72,70 @@ class ServerThread extends Thread {
         System.out.println("Packet from: " + address);
         System.out.println(protocol.toString());
 
-        if (protocol.sequence < fragments.length) { locked = true; }
+        synchronized (Server.monitor) {
+            try {
+                if (protocol.sequence < fragments.length) { Server.monitor.wait(); }
+            } catch (Exception e) {
+                System.out.println(e);
+            }
+        }
     }
 
     // jfc I have no idea
     public void run() {
-        try {
-            switch (protocol.status) {
-                case ONLINE:
-                    Profile user = new Profile(address, protocol);
-                    Server.userList.put(address, user);
-                    System.out.println("Added new record: " + user.getRecord());
+        synchronized (Server.monitor) {
+            try {
+                switch (protocol.status) {
+                    case ONLINE:
+                        Profile user = new Profile(address, protocol);
+                        Server.userList.put(address, user);
+                        System.out.println("Added new record: " + user.getRecord());
 
-                    acknowledge();
-                    break;
-                case OFFLINE:
-                    Server.userList.remove(address);
+                        acknowledge();
+                        break;
+                    case OFFLINE:
+                        Server.userList.remove(address);
 
-                    acknowledge();
-                    break;
-                case JOIN:
-                    //Server.send(Protocol.Status.OK, address, );
+                        acknowledge();
+                        break;
+                    case JOIN:
+                        //Server.send(Protocol.Status.OK, address, );
 
-                    acknowledge();
-                    break;
-                case EXIT:
-                    acknowledge();
-                    break;
-                case QUERY:
-                    acknowledge();
+                        acknowledge();
+                        break;
+                    case EXIT:
+                        acknowledge();
+                        break;
+                    case QUERY:
+                        acknowledge();
 
-                    Protocol[] out = Protocol.create(Protocol.Status.OK, Server.printUserList());
-                    for (Protocol frag : out) {
-                        DatagramPacket packet = new DatagramPacket(frag.getBytes(), Protocol.LENGTH, address, Connection.PORT);
+                        Protocol[] out = Protocol.create(Protocol.Status.OK, Server.printUserList());
+                        for (Protocol frag : out) {
+                            DatagramPacket packet = new DatagramPacket(frag.getBytes(), Protocol.LENGTH, address, Connection.PORT);
+                            Server.socket.send(packet);
+                            Server.monitor.wait();
+                        }
+                        System.out.println("OK!");
+                        break;
+                    default:
+                        Protocol response = Protocol.create(Protocol.Status.ERROR);
+                        DatagramPacket packet = new DatagramPacket(response.getBytes(), Protocol.LENGTH, address, Connection.PORT);
                         Server.socket.send(packet);
-                        locked = true;
-                        Server.suspend(this);
-                    }
-                    System.out.println("OK!");
-                    break;
-                default:
-                    Protocol response = Protocol.create(Protocol.Status.ERROR);
-                    DatagramPacket packet = new DatagramPacket(response.getBytes(), Protocol.LENGTH, address, Connection.PORT);
-                    Server.socket.send(packet);
+                }
+            } catch (Exception e) {
+                System.out.println("!!! THREAD ERROR: " + e + " !!!");
             }
-        } catch (Exception e) {
-            System.out.println("!!! THREAD ERROR: " + e + " !!!");
         }
         Server.closeThread(address);
     }
 
     public void pass(DatagramPacket fragment) {
-        Protocol inbound = Protocol.create(fragment.getData());
-        System.out.println(inbound.toString());
+        synchronized (Server.monitor) {
+            Protocol inbound = Protocol.create(fragment.getData());
+            System.out.println(inbound.toString());
 
-        if (inbound.sequence >= fragments.length) { locked = false; }
+            if (inbound.sequence >= fragments.length) { Server.monitor.notify(); }
+        }
     }
 
     void acknowledge() {

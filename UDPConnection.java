@@ -73,7 +73,7 @@ public abstract class UDPConnection extends Connection {
 
         int packets = Integer.parseInt(Protocol.create(packet.getData()).data);
         Protocol[] fragments = new Protocol[packets];
-
+        System.out.println(packets);
         for (int i = 0; i < packets; i++) {
             packet = new DatagramPacket(new byte[Protocol.LENGTH], Protocol.LENGTH);
             socket.receive(packet);
@@ -81,7 +81,9 @@ public abstract class UDPConnection extends Connection {
 
             System.out.println(fragments[i].toString());
 
-            send(Protocol.Status.OK, address);
+            Protocol response = Protocol.create(Protocol.Status.OK);
+            packet = new DatagramPacket(response.getBytes(), Protocol.LENGTH, address, Connection.PORT);
+            socket.send(packet);
         }
 
         return Protocol.constructData(fragments);
