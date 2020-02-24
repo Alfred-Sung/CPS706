@@ -79,6 +79,8 @@ public abstract class UDPConnection extends Connection {
             socket.receive(packet);
             fragments[i] = Protocol.create(packet.getData());
 
+            System.out.println(fragments[i].toString());
+
             send(Protocol.Status.OK, address);
         }
 

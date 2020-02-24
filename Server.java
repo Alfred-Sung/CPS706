@@ -26,7 +26,9 @@ public class Server extends UDPConnection {
                 InetAddress address = packet.getAddress();
 
                 if (threads.containsKey(address)) {
-                    threads.get(address).pass(packet);
+                    ServerThread thread = threads.get(address);
+                    thread.pass(packet);
+                    if (!thread.locked) { thread.notify(); }
                 } else {
                     ServerThread thread = new ServerThread(packet);
                     threads.put(address, thread);
@@ -59,6 +61,8 @@ public class Server extends UDPConnection {
  * Services request and sends back a response to client
  */
 class ServerThread extends Thread {
+    public boolean locked = false;
+
     InetAddress address;
     Protocol protocol;
     Protocol[] fragments;
@@ -71,13 +75,7 @@ class ServerThread extends Thread {
         System.out.println("Packet from: " + address);
         System.out.println(protocol.toString());
 
-        if (protocol.sequence < fragments.length) {
-            try {
-                wait();
-            } catch (Exception e) {
-
-            }
-        }
+        if (protocol.sequence < fragments.length) { lock(); }
     }
 
     // jfc I have no idea
@@ -111,7 +109,7 @@ class ServerThread extends Thread {
                     for (Protocol frag : out) {
                         DatagramPacket packet = new DatagramPacket(frag.getBytes(), Protocol.LENGTH, address, Connection.PORT);
                         Server.socket.send(packet);
-                        wait();
+                        lock();
                     }
                     System.out.println("OK!");
                     break;
@@ -130,7 +128,16 @@ class ServerThread extends Thread {
         Protocol inbound = Protocol.create(fragment.getData());
         System.out.println(inbound.toString());
 
-        if (inbound.sequence >= fragments.length) { notify(); }
+        if (inbound.sequence >= fragments.length) { locked = false; }
+    }
+
+    void lock() {
+        locked = true;
+        try {
+            wait();
+        } catch (Exception e) {
+            System.out.println(e);
+        }
     }
 
     void acknowledge() {
