@@ -26,14 +26,14 @@ public class Server extends UDPConnection {
                 InetAddress address = packet.getAddress();
 
                 if (threads.containsKey(address)) {
-                    System.out.println("Test");
+                    threads.get(address).pass(packet);
                 } else {
                     ServerThread thread = new ServerThread(packet);
-                    threads.put(packet.getAddress(), thread);
+                    threads.put(address, thread);
                     thread.start();
                 }
             } catch (Exception e) {
-                System.out.println(e);
+                System.out.println(e + " at " + e.getStackTrace()[0]);
             }
         }
     }
@@ -60,22 +60,32 @@ public class Server extends UDPConnection {
  */
 class ServerThread extends Thread {
     InetAddress address;
-    Protocol inbound;
+    Protocol protocol;
+    Protocol[] fragments;
 
     public ServerThread(DatagramPacket packet) {
         address = packet.getAddress();
-        inbound = Protocol.create(packet.getData());
+        protocol = Protocol.create(packet.getData());
+        fragments = new Protocol[Integer.parseInt(protocol.data)];
 
         System.out.println("Packet from: " + address);
+        System.out.println(protocol.toString());
+
+        if (protocol.sequence < fragments.length) {
+            try {
+                wait();
+            } catch (Exception e) {
+
+            }
+        }
     }
 
+    // jfc I have no idea
     public void run() {
-        System.out.println(inbound.toString());
-
         try {
-            switch (inbound.status) {
+            switch (protocol.status) {
                 case ONLINE:
-                    Profile user = new Profile(address, inbound);
+                    Profile user = new Profile(address, protocol);
                     Server.userList.put(address, user);
                     System.out.println("Added new record: " + user.getRecord());
 
@@ -87,6 +97,8 @@ class ServerThread extends Thread {
                     acknowledge();
                     break;
                 case JOIN:
+                    //Server.send(Protocol.Status.OK, address, );
+
                     acknowledge();
                     break;
                 case EXIT:
@@ -95,16 +107,30 @@ class ServerThread extends Thread {
                 case QUERY:
                     acknowledge();
 
-                    Server.send(Protocol.Status.OK, address, Server.printUserList());
+                    Protocol[] out = Protocol.create(Protocol.Status.OK, Server.printUserList());
+                    for (Protocol frag : out) {
+                        DatagramPacket packet = new DatagramPacket(frag.getBytes(), Protocol.LENGTH, address, Connection.PORT);
+                        Server.socket.send(packet);
+                        wait();
+                    }
                     System.out.println("OK!");
                     break;
                 default:
-                    // Respond with 400 ERROR
+                    Protocol response = Protocol.create(Protocol.Status.ERROR);
+                    DatagramPacket packet = new DatagramPacket(response.getBytes(), Protocol.LENGTH, address, Connection.PORT);
+                    Server.socket.send(packet);
             }
         } catch (Exception e) {
             System.out.println("!!! THREAD ERROR: " + e + " !!!");
         }
         Server.closeThread(address);
+    }
+
+    public void pass(DatagramPacket fragment) {
+        Protocol inbound = Protocol.create(fragment.getData());
+        System.out.println(inbound.toString());
+
+        if (inbound.sequence >= fragments.length) { notify(); }
     }
 
     void acknowledge() {
@@ -114,7 +140,7 @@ class ServerThread extends Thread {
             DatagramPacket packet = new DatagramPacket(response.getBytes(), Protocol.LENGTH, address, Connection.PORT);
             Server.socket.send(packet);
         } catch (Exception e) {
-            System.out.println(e);
+            System.out.println(e + " at " + e.getStackTrace()[0]);
         }
     }
 }

@@ -71,7 +71,7 @@ public class Protocol {
 
         byte[] dataBytes = new byte[40];
         buffer.get(40, dataBytes, 0, dataBytes.length);
-        this.data = new String(dataBytes);
+        this.data = new String(dataBytes).trim();
     }
 
     public byte[] getBytes(){

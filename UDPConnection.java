@@ -24,6 +24,7 @@ public abstract class UDPConnection extends Connection {
 
                 if (response.status == Protocol.Status.OK) { return true; }
             } catch (Exception e) {
+                System.out.println(e + " at " + e.getStackTrace()[0]);
                 return false;
             }
         }
@@ -34,11 +35,9 @@ public abstract class UDPConnection extends Connection {
     public static boolean send(Protocol.Status status, InetAddress address, String message) {
         int failed = 0;
         Protocol[] outbound = Protocol.create(status, message);
-        System.out.println(outbound.length);
         for (int i = 0; i < outbound.length; i++) {
             try {
                 DatagramPacket packet = new DatagramPacket(outbound[i].getBytes(), Protocol.LENGTH, address, Server.PORT);
-                System.out.println("Sent packet");
                 socket.send(packet);
 
                 socket.setSoTimeout(TIMEOUT);
@@ -64,17 +63,23 @@ public abstract class UDPConnection extends Connection {
         return true;
     }
 
-    public static String receive() throws Exception{
+    public static String receive() throws Exception {
+        InetAddress address;
+
         DatagramPacket packet = new DatagramPacket(new byte[Protocol.LENGTH], Protocol.LENGTH);
         socket.receive(packet);
-        send(Protocol.Status.OK, packet.getAddress());
-        Protocol inbound = Protocol.create(packet.getData());
+        address = packet.getAddress();
+        send(Protocol.Status.OK, address);
 
-        int packets = Integer.parseInt(inbound.data);
+        int packets = Integer.parseInt(Protocol.create(packet.getData()).data);
         Protocol[] fragments = new Protocol[packets];
-        for (int i = 0; i < packets - 1; i++) {
+
+        for (int i = 0; i < packets; i++) {
+            packet = new DatagramPacket(new byte[Protocol.LENGTH], Protocol.LENGTH);
             socket.receive(packet);
-            send(Protocol.Status.OK, packet.getAddress());
+            fragments[i] = Protocol.create(packet.getData());
+
+            send(Protocol.Status.OK, address);
         }
 
         return Protocol.constructData(fragments);

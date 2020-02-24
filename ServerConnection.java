@@ -24,7 +24,7 @@ public class ServerConnection extends UDPConnection {
             send(Protocol.Status.QUERY, serverAddress);
             return receive();
         } catch (Exception e) {
-            System.out.println(e);
+            System.out.println(e + " at " + e.getStackTrace()[0]);
             return "";
         }
     }
