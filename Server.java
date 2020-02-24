@@ -54,6 +54,8 @@ public class Server extends UDPConnection {
         System.out.println("Thread closed\n");
         threads.remove(address);
     }
+
+    public static void suspend(ServerThread thread) { try { thread.wait(); } catch (Exception e) {} }
 }
 
 /**
@@ -75,7 +77,7 @@ class ServerThread extends Thread {
         System.out.println("Packet from: " + address);
         System.out.println(protocol.toString());
 
-        if (protocol.sequence < fragments.length) { lock(); }
+        if (protocol.sequence < fragments.length) { locked = true; }
     }
 
     // jfc I have no idea
@@ -109,7 +111,8 @@ class ServerThread extends Thread {
                     for (Protocol frag : out) {
                         DatagramPacket packet = new DatagramPacket(frag.getBytes(), Protocol.LENGTH, address, Connection.PORT);
                         Server.socket.send(packet);
-                        lock();
+                        locked = true;
+                        Server.suspend(this);
                     }
                     System.out.println("OK!");
                     break;
@@ -129,15 +132,6 @@ class ServerThread extends Thread {
         System.out.println(inbound.toString());
 
         if (inbound.sequence >= fragments.length) { locked = false; }
-    }
-
-    void lock() {
-        locked = true;
-        try {
-            wait();
-        } catch (Exception e) {
-            System.out.println(e);
-        }
     }
 
     void acknowledge() {
