@@ -24,11 +24,21 @@ public class Protocol {
      */
     private static Protocol[] split(Status status, String data) {
         List<Protocol> fragments = new LinkedList<>();
-        String[] dataFragments = data.split("(?<=\\G.{40})");
+        //String[] dataFragments = data.split("(?<=\\G.{40})");
 
-        fragments.add(new Protocol(status, 0, String.valueOf(dataFragments.length)));
-        for (int i = 0; i < dataFragments.length; i++) {
-            fragments.add(new Protocol(status, i + 1, dataFragments[i]));
+        List<String> dataFragments = new LinkedList<>();
+        for (int start = 0; start < data.length(); start += 40) {
+            dataFragments.add(data.substring(start, Math.min(data.length(), start + 40)));
+        }
+
+        System.out.println("String Length: " + data.length());
+        System.out.println("Byte Length: " + data.getBytes().length);
+        System.out.println("Length: " + dataFragments.size());
+
+        fragments.add(new Protocol(status, 0, String.valueOf(dataFragments.size())));
+        for (int i = 0; i < dataFragments.size(); i++) {
+            System.out.println(dataFragments.get(i));
+            fragments.add(new Protocol(status, i + 1, dataFragments.get(i)));
         }
 
         return fragments.toArray(new Protocol[0]);

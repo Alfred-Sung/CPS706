@@ -40,7 +40,7 @@ public class Server extends UDPConnection {
     }
 
     public static String printUserList() {
-        StringBuilder result = new StringBuilder("User\tIP\tChatroom\tPopularity\n");
+        StringBuilder result = new StringBuilder("User\t\t\tIP\t\t\t\t\tChatroom\t\t\tPopularity\n");
 
         for (Profile c : userList.values()) {
             result.append(c.getRecord() + '\n');
@@ -69,8 +69,7 @@ class ServerThread extends Thread {
         protocol = Protocol.create(packet.getData());
         fragments = new Protocol[Integer.parseInt(protocol.data)];
 
-        System.out.println("Packet from: " + address);
-        System.out.println(protocol.toString());
+        System.out.println(address + "> " + protocol.status + " " + protocol.data);
 
         synchronized (Server.monitor) {
             try {
@@ -113,6 +112,7 @@ class ServerThread extends Thread {
                         for (Protocol frag : out) {
                             DatagramPacket packet = new DatagramPacket(frag.getBytes(), Protocol.LENGTH, address, Connection.PORT);
                             Server.socket.send(packet);
+                            System.out.println("@> " + frag.status + " " + frag.data);
                             Server.monitor.wait();
                         }
                         System.out.println("OK!");
@@ -132,7 +132,7 @@ class ServerThread extends Thread {
     public void pass(DatagramPacket fragment) {
         synchronized (Server.monitor) {
             Protocol inbound = Protocol.create(fragment.getData());
-            System.out.println(inbound.toString());
+            System.out.println(address + "> " + inbound.status + " " + inbound.data);
 
             if (inbound.sequence >= fragments.length) { Server.monitor.notify(); }
         }
@@ -179,9 +179,9 @@ class Profile {
     }
 
     public String getRecord() {
-        return nickname + '\t' +
-                IP + '\t' +
-                chatName + '\t' +
-                ((float)activeUsers / Server.totalUsers);
+        return nickname + "\t\t\t" +
+                IP + "\t\t" +
+                (chatName.equals("") ? "None" : chatName) + "\t\t\t\t" +
+                (Server.totalUsers == 0 ? 0 : ((float)activeUsers / Server.totalUsers));
     }
 }
