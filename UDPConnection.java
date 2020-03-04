@@ -35,7 +35,7 @@ public abstract class UDPConnection extends Thread {
                     keyNotFound(address, protocol);
                 }
             } catch (Exception e) {
-                System.out.println(e + " at " + e.getStackTrace()[0]);
+                //System.out.println(e + " at " + e.getStackTrace()[0]);
             }
         }
     }
@@ -51,7 +51,7 @@ public abstract class UDPConnection extends Thread {
         try {
             synchronized (UDPMonitor) { UDPMonitor.wait(); }
         } catch (Exception e) {
-            System.out.println(e + " at " + e.getStackTrace()[0]);
+            //System.out.println(e + " at " + e.getStackTrace()[0]);
         }
     }
 
@@ -64,7 +64,7 @@ public abstract class UDPConnection extends Thread {
         try {
             synchronized (UDPMonitor) { UDPMonitor.wait(); }
         } catch (Exception e) {
-            System.out.println(e + " at " + e.getStackTrace()[0]);
+            //System.out.println(e + " at " + e.getStackTrace()[0]);
         }
     }
     public void receive(InetAddress fromIP, Protocol header) { receive(fromIP, header,null, null); }
@@ -77,7 +77,7 @@ public abstract class UDPConnection extends Thread {
         try {
             synchronized (UDPMonitor) { UDPMonitor.wait(); }
         } catch (Exception e) {
-            System.out.println(e + " at " + e.getStackTrace()[0]);
+            //System.out.println(e + " at " + e.getStackTrace()[0]);
         }
     }
 
@@ -115,7 +115,7 @@ class SendThread extends ConnectionThread {
                         break;
                 }
             } catch (Exception e) {
-                System.out.println(e + " at " + e.getStackTrace()[0]);
+                //System.out.println(e + " at " + e.getStackTrace()[0]);
 
                 i--;
                 if (fail()) { return; };
@@ -144,16 +144,16 @@ class ReceiveThread extends ConnectionThread {
     public ReceiveThread(InetAddress fromIP) { this(fromIP, null, null); }
     public ReceiveThread(InetAddress fromIP, Callback threadResponse, Callback failedResponse) {
         super(fromIP, threadResponse, failedResponse);
-
-        try {
-            synchronized (threadMonitor) { threadMonitor.wait(); }
-        } catch (Exception e) {
-            System.out.println(e + " at " + e.getStackTrace()[0]);
-        }
     }
 
     @Override
     public void run() {
+        try {
+            synchronized (threadMonitor) { threadMonitor.wait(); }
+        } catch (Exception e) {
+            //System.out.println(e + " at " + e.getStackTrace()[0]);
+        }
+
         try {
             for (int i = 0; i < fragments.length; i++) {
                 synchronized (threadMonitor) { threadMonitor.wait(); }
@@ -161,7 +161,7 @@ class ReceiveThread extends ConnectionThread {
                 acknowledge();
             }
         } catch (Exception e) {
-            System.out.println(e + " at " + e.getStackTrace()[0]);
+            //System.out.println(e + " at " + e.getStackTrace()[0]);
 
             if (failedResponse != null) { failedResponse.invoke(Protocol.Status.ERROR, ""); }
         }
@@ -179,7 +179,7 @@ class ReceiveThread extends ConnectionThread {
             Connection.socket.send(packet);
             Connection.socket.setSoTimeout(Connection.TIMEOUT);
         } catch (Exception e) {
-            System.out.println(e + " at " + e.getStackTrace()[0]);
+            //System.out.println(e + " at " + e.getStackTrace()[0]);
         }
     }
 
@@ -188,7 +188,10 @@ class ReceiveThread extends ConnectionThread {
         recent = protocol;
         System.out.println(address + "> " + protocol.status + " " + protocol.data);
 
-        if (protocol.sequence == 0) { fragments = new Protocol[Integer.parseInt(protocol.data)]; }
+        if (protocol.sequence == 0) {
+            fragments = new Protocol[Integer.parseInt(protocol.data)];
+            acknowledge();
+        }
 
         synchronized (threadMonitor) {
             if (recent.sequence >= fragments.length) { threadMonitor.notify(); }
@@ -205,6 +208,8 @@ abstract class ConnectionThread extends Thread {
     Callback failedResponse;
 
     public ConnectionThread(InetAddress address, Callback threadResponse, Callback failedResponse) {
+        System.out.println("New Thread");
+
         this.address = address;
         this.threadResponse = threadResponse;
         this.failedResponse = failedResponse;
