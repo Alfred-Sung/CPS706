@@ -19,7 +19,6 @@ public class Server extends Connection {
         public void invoke(InetAddress address, Protocol protocol, String data) {
             switch (protocol.status) {
                 case ONLINE:
-                    // TODO: Add user to directory
                     Connection.log("Added user to directory");
                     directory.add(address, protocol);
                     break;

@@ -13,7 +13,7 @@ public abstract class UDPConnection extends Thread {
     private static HashMap<InetAddress, ConnectionThread> threads = new HashMap<InetAddress, ConnectionThread>();
 
     public static void closeThread(InetAddress address) {
-        System.out.println("Thread closed\n");
+        Connection.log("Thread closed\n");
         threads.remove(address);
 
         synchronized (UDPMonitor) { UDPMonitor.notify(); }
@@ -35,7 +35,7 @@ public abstract class UDPConnection extends Thread {
                     keyNotFound(address, protocol);
                 }
             } catch (Exception e) {
-                //System.out.println(e + " at " + e.getStackTrace()[0]);
+                //Connection.log(e + " at " + e.getStackTrace()[0]);
             }
         }
     }
@@ -47,11 +47,18 @@ public abstract class UDPConnection extends Thread {
         ConnectionThread thread = new SendThread(toIP, fragments, threadResponse, failResponse);
         threads.put(toIP, thread);
         thread.start();
+    }
+
+    public void awaitSend(InetAddress toIP, Protocol[] fragments) { awaitSend(toIP, fragments, null, null); }
+    public void awaitSend(InetAddress toIP, Protocol.Status status) { awaitSend(toIP, Protocol.create(status), null, null); }
+    public void awaitSend(InetAddress toIP, Protocol.Status status, Callback threadResponse, Callback failResponse) { awaitSend(toIP, Protocol.create(status), threadResponse, failResponse); }
+    public void awaitSend(InetAddress toIP, Protocol[] fragments, Callback threadResponse, Callback failResponse) {
+        send(toIP, fragments, threadResponse, failResponse);
 
         try {
             synchronized (UDPMonitor) { UDPMonitor.wait(); }
         } catch (Exception e) {
-            //System.out.println(e + " at " + e.getStackTrace()[0]);
+            //Connection.log(e + " at " + e.getStackTrace()[0]);
         }
     }
 
@@ -64,7 +71,7 @@ public abstract class UDPConnection extends Thread {
         try {
             synchronized (UDPMonitor) { UDPMonitor.wait(); }
         } catch (Exception e) {
-            //System.out.println(e + " at " + e.getStackTrace()[0]);
+            //Connection.log(e + " at " + e.getStackTrace()[0]);
         }
     }
     public void receive(InetAddress fromIP, Protocol header) { receive(fromIP, header,null, null); }
@@ -77,7 +84,7 @@ public abstract class UDPConnection extends Thread {
         try {
             synchronized (UDPMonitor) { UDPMonitor.wait(); }
         } catch (Exception e) {
-            //System.out.println(e + " at " + e.getStackTrace()[0]);
+            //Connection.log(e + " at " + e.getStackTrace()[0]);
         }
     }
 
@@ -116,7 +123,7 @@ class SendThread extends ConnectionThread {
                         break;
                 }
             } catch (Exception e) {
-                //System.out.println(e + " at " + e.getStackTrace()[0]);
+                //Connection.log(e + " at " + e.getStackTrace()[0]);
 
                 i--;
                 if (fail()) { return; };
@@ -187,7 +194,7 @@ class ReceiveThread extends ConnectionThread {
     @Override
     public void pass(Protocol protocol){
         recent = protocol;
-        System.out.println(address + "> " + protocol.status + " " + protocol.data);
+        Connection.log(address , protocol);
 
         if (protocol.sequence == 0) {
             fragments = new Protocol[Integer.parseInt(protocol.data)];

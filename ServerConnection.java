@@ -24,7 +24,7 @@ public class ServerConnection extends Connection {
     public boolean connect(String serverIP) {
         try {
             InetAddress temp = InetAddress.getByName(serverIP);
-            UDP.send(temp, Protocol.Status.ONLINE,
+            UDP.awaitSend(temp, Protocol.Status.ONLINE,
                     new Callback() {
                         @Override
                         public void invoke(InetAddress address, Protocol protocol, String data) {
@@ -47,7 +47,7 @@ public class ServerConnection extends Connection {
 
     public String getDirectory() {
         try {
-            UDP.send(serverAddress, Protocol.Status.QUERY);
+            UDP.awaitSend(serverAddress, Protocol.Status.QUERY);
             UDP.receive(serverAddress,
                     new Callback() {
                         @Override
