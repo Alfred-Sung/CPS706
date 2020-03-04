@@ -54,7 +54,7 @@ public abstract class UDPConnection extends Thread {
                     keyNotFound(address, protocol);
                 }
             } catch (Exception e) {
-                //Connection.log(e + " at " + e.getStackTrace()[0]);
+                Connection.log(e + " at " + e.getStackTrace()[0]);
             }
         }
     }
@@ -76,7 +76,7 @@ public abstract class UDPConnection extends Thread {
         try {
             synchronized (UDPMonitor) { UDPMonitor.wait(); }
         } catch (Exception e) {
-            //Connection.log(e + " at " + e.getStackTrace()[0]);
+            Connection.log(e + " at " + e.getStackTrace()[0]);
         }
     }
 
@@ -99,7 +99,7 @@ public abstract class UDPConnection extends Thread {
         try {
             synchronized (UDPMonitor) { UDPMonitor.wait(); }
         } catch (Exception e) {
-            //Connection.log(e + " at " + e.getStackTrace()[0]);
+            Connection.log(e + " at " + e.getStackTrace()[0]);
         }
     }
     public void awaitReceive(InetAddress fromIP, Protocol header) { awaitReceive(fromIP, header,null, null); }
@@ -109,7 +109,7 @@ public abstract class UDPConnection extends Thread {
         try {
             synchronized (UDPMonitor) { UDPMonitor.wait(); }
         } catch (Exception e) {
-            //Connection.log(e + " at " + e.getStackTrace()[0]);
+            Connection.log(e + " at " + e.getStackTrace()[0]);
         }
     }
 
@@ -148,7 +148,7 @@ class SendThread extends ConnectionThread {
                         break;
                 }
             } catch (Exception e) {
-                //Connection.log(e + " at " + e.getStackTrace()[0]);
+                Connection.log(e + " at " + e.getStackTrace()[0]);
 
                 i--;
                 if (fail()) { return; };
@@ -179,17 +179,17 @@ class ReceiveThread extends ConnectionThread {
         super(fromIP, threadResponse, failedResponse);
     }
 
-    /*
     @Override
     public void run() {
-        try {
-            synchronized (threadMonitor) { threadMonitor.wait(); }
-        } catch (Exception e) {
-            Connection.log(e + " at " + e.getStackTrace()[0]);
+        if (fragments == null) {
+            try {
+                synchronized (threadMonitor) { threadMonitor.wait(); }
+            } catch (Exception e) {
+                Connection.log(e + " at " + e.getStackTrace()[0]);
+            }
         }
 
         try {
-            System.out.println("AAAAAAAAAAA: " + fragments.length);
             for (int i = 0; i < fragments.length; i++) {
                 synchronized (threadMonitor) { threadMonitor.wait(); }
                 fragments[i] = recent;
@@ -198,19 +198,6 @@ class ReceiveThread extends ConnectionThread {
         } catch (Exception e) {
             Connection.log(e + " at " + e.getStackTrace()[0]);
 
-            if (failedResponse != null) { failedResponse.invoke(address, recent, recent.data); }
-        }
-
-        if (threadResponse != null) { threadResponse.invoke(address, recent, Protocol.constructData(fragments)); }
-        UDPConnection.closeThread(address);
-    }
-    */
-    @Override
-    public void run() {
-        try {
-            synchronized (threadMonitor) { threadMonitor.wait(); }
-        } catch (Exception e) {
-            Connection.log(e + " at " + e.getStackTrace()[0]);
             if (failedResponse != null) { failedResponse.invoke(address, recent, recent.data); }
         }
 
@@ -227,7 +214,7 @@ class ReceiveThread extends ConnectionThread {
             Connection.socket.send(packet);
             //Connection.socket.setSoTimeout(Connection.TIMEOUT);
         } catch (Exception e) {
-            //Connection.log(e + " at " + e.getStackTrace()[0]);
+            Connection.log(e + " at " + e.getStackTrace()[0]);
         }
     }
 
@@ -238,15 +225,10 @@ class ReceiveThread extends ConnectionThread {
 
         if (protocol.sequence == 0) {
             fragments = new Protocol[Integer.parseInt(protocol.data)];
-        } else {
-            fragments[recent.sequence - 1] = protocol;
+            acknowledge();
         }
 
-        acknowledge();
-
-        synchronized (threadMonitor) {
-            if (recent.sequence >= fragments.length) { threadMonitor.notify(); }
-        }
+        synchronized (threadMonitor) { threadMonitor.notify(); }
     }
 }
 
