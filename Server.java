@@ -42,7 +42,7 @@ public class Server extends Connection {
         UDP = new UDPConnection() {
             @Override
             public void keyNotFound(InetAddress address, Protocol protocol) {
-                receive(address, protocol,
+                awaitReceive(address, protocol,
                         clientResponse,
                         new Callback() {
                             @Override

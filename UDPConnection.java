@@ -2,6 +2,7 @@ import java.net.DatagramPacket;
 import java.net.InetAddress;
 import java.util.HashMap;
 import java.util.LinkedList;
+import java.util.Queue;
 import java.util.concurrent.TimeoutException;
 
 /**
@@ -10,11 +11,29 @@ import java.util.concurrent.TimeoutException;
 interface Callback { void invoke(InetAddress address, Protocol protocol, String data); }
 public abstract class UDPConnection extends Thread {
     public static final Object UDPMonitor = new Object();
-    private static HashMap<InetAddress, ConnectionThread> threads = new HashMap<InetAddress, ConnectionThread>();
+    private static HashMap<InetAddress, Queue<ConnectionThread>> threads = new HashMap<>();
+
+    public static void spawnThread(InetAddress address, ConnectionThread thread) {
+        if (threads.containsKey(address)) {
+            threads.get(address).add(thread);
+        } else {
+            Queue<ConnectionThread> queue = new LinkedList<>();
+            queue.add(thread);
+            threads.put(address, queue);
+        }
+
+        if (threads.get(address).size() == 1) { threads.get(address).peek().start(); }
+    }
 
     public static void closeThread(InetAddress address) {
         Connection.log("Thread closed\n");
-        threads.remove(address);
+
+        threads.remove(address).remove();
+        if (threads.get(address).size() > 0) {
+            threads.get(address).peek().start();
+        } else {
+            threads.remove(address);
+        }
 
         synchronized (UDPMonitor) { UDPMonitor.notify(); }
     }
@@ -30,7 +49,7 @@ public abstract class UDPConnection extends Thread {
                 Protocol protocol = Protocol.create(packet.getData())[0];
 
                 if (threads.containsKey(address)) {
-                    threads.get(address).pass(protocol);
+                    threads.get(address).peek().pass(protocol);
                 } else {
                     keyNotFound(address, protocol);
                 }
@@ -45,7 +64,7 @@ public abstract class UDPConnection extends Thread {
     public void send(InetAddress toIP, Protocol.Status status, Callback threadResponse, Callback failResponse) { send(toIP, Protocol.create(status), threadResponse, failResponse); }
     public void send(InetAddress toIP, Protocol[] fragments, Callback threadResponse, Callback failResponse) {
         ConnectionThread thread = new SendThread(toIP, fragments, threadResponse, failResponse);
-        threads.put(toIP, thread);
+        UDPConnection.spawnThread(toIP, thread);
         thread.start();
     }
 
@@ -65,8 +84,19 @@ public abstract class UDPConnection extends Thread {
     public void receive(InetAddress fromIP) { receive(fromIP,null, null); }
     public void receive(InetAddress fromIP, Callback threadResponse, Callback failResponse) {
         ConnectionThread thread = new ReceiveThread(fromIP, threadResponse, failResponse);
-        threads.put(fromIP, thread);
+        UDPConnection.spawnThread(fromIP, thread);
+    }
+    public void receive(InetAddress fromIP, Protocol header) { awaitReceive(fromIP, header,null, null); }
+    public void receive(InetAddress fromIP, Protocol header, Callback threadResponse, Callback failResponse) {
+        ConnectionThread thread = new ReceiveThread(fromIP, threadResponse, failResponse);
+        UDPConnection.spawnThread(fromIP, thread);
         thread.start();
+        thread.pass(header);
+    }
+
+    public void awaitReceive(InetAddress fromIP) { awaitReceive(fromIP,null, null); }
+    public void awaitReceive(InetAddress fromIP, Callback threadResponse, Callback failResponse) {
+       receive(fromIP, threadResponse, failResponse);
 
         try {
             synchronized (UDPMonitor) { UDPMonitor.wait(); }
@@ -74,12 +104,9 @@ public abstract class UDPConnection extends Thread {
             //Connection.log(e + " at " + e.getStackTrace()[0]);
         }
     }
-    public void receive(InetAddress fromIP, Protocol header) { receive(fromIP, header,null, null); }
-    public void receive(InetAddress fromIP, Protocol header, Callback threadResponse, Callback failResponse) {
-        ConnectionThread thread = new ReceiveThread(fromIP, threadResponse, failResponse);
-        threads.put(fromIP, thread);
-        thread.start();
-        thread.pass(header);
+    public void awaitReceive(InetAddress fromIP, Protocol header) { awaitReceive(fromIP, header,null, null); }
+    public void awaitReceive(InetAddress fromIP, Protocol header, Callback threadResponse, Callback failResponse) {
+        receive(fromIP, header, threadResponse, failResponse);
 
         try {
             synchronized (UDPMonitor) { UDPMonitor.wait(); }

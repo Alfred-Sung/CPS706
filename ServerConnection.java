@@ -48,7 +48,7 @@ public class ServerConnection extends Connection {
     public String getDirectory() {
         try {
             UDP.awaitSend(serverAddress, Protocol.Status.QUERY);
-            UDP.receive(serverAddress,
+            UDP.awaitReceive(serverAddress,
                     new Callback() {
                         @Override
                         public void invoke(InetAddress address, Protocol protocol, String data) {
@@ -65,7 +65,7 @@ public class ServerConnection extends Connection {
             return "";
         }
 
-        return directory.getDirectory();
+        return "End";
     }
 
     public void joinChat(String peerIP) {
