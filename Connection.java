@@ -20,6 +20,7 @@ public abstract class Connection {
             localMachine = InetAddress.getLocalHost();
             hostName = localMachine.getHostName();
             socket = new DatagramSocket(PORT);
+            socket.setSoTimeout(TIMEOUT);
 
             System.out.println(localMachine.getHostAddress() + " : " + hostName);
         } catch (Exception e) {

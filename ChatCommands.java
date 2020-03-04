@@ -58,7 +58,7 @@ public class ChatCommands {
     static void join(String name) { System.out.println("User joined " + name + "'s chat!"); }
 
     @Command(parameters = {}, description = "")
-    static void query() { System.out.println("Thing"); }
+    static void query() { /* System.out.println(ServerConnection.getDirectory());*/ }
 
     @Command(parameters = {}, description = "")
     static void accept() { System.out.println("Thing"); }
@@ -76,6 +76,6 @@ public class ChatCommands {
 
     @Command(parameters = {}, description = "Lists all available chat commands")
     static void help() {
-        for (Method m : methods) { System.out.println(getMethodDescription(m));}
+        for (Method m : methods) { System.out.println(getMethodDescription(m)); }
     }
 }

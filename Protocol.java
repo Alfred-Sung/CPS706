@@ -7,6 +7,7 @@ import java.util.*;
 // TODO: Implement fragmented packets
 public class Protocol {
     public static final int LENGTH = 80;
+    public static final int DATALENGTH = 40;
     Status status; //4 bytes
     Integer sequence; //4 bytes
 
@@ -15,26 +16,19 @@ public class Protocol {
 
     String data; //40 bytes
 
-    public static Protocol create(Status status) { return new Protocol(status, 0, "0"); }
-    public static Protocol create(byte[] data) { return new Protocol(data); }
+    public static Protocol[] create(Status status) { return new Protocol[] { new Protocol(status, 0, "0") }; }
+    public static Protocol[] create(byte[] data) { return new Protocol[] { new Protocol(data) }; }
     public static Protocol[] create(Status status, String data) { return split(status, data); }
 
-    /**
-     * When Protocol packets are split, the leading Protocol (sequence number: 0) will contain the number of subsequent packets in the data field
-     */
     private static Protocol[] split(Status status, String data) {
-        List<Protocol> fragments = new LinkedList<>();
-        //String[] dataFragments = data.split("(?<=\\G.{40})");
-
+        // Split data string into chunks of length DATALENGTH
         List<String> dataFragments = new LinkedList<>();
-        for (int start = 0; start < data.length(); start += 40) {
-            dataFragments.add(data.substring(start, Math.min(data.length(), start + 40)));
+        for (int start = 0; start < data.length(); start += DATALENGTH) {
+            dataFragments.add(data.substring(start, Math.min(data.length(), start + DATALENGTH)));
         }
 
-        System.out.println("String Length: " + data.length());
-        System.out.println("Byte Length: " + data.getBytes().length);
-        System.out.println("Length: " + dataFragments.size());
 
+        List<Protocol> fragments = new LinkedList<>();
         fragments.add(new Protocol(status, 0, String.valueOf(dataFragments.size())));
         for (int i = 0; i < dataFragments.size(); i++) {
             System.out.println(dataFragments.get(i));
