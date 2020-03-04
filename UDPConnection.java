@@ -214,14 +214,14 @@ class ReceiveThread extends ConnectionThread {
     @Override
     public void pass(Protocol protocol){
         recent = protocol;
-        Connection.log(address , protocol);
+        Connection.log(address, protocol);
 
         if (protocol.sequence == 0) {
             fragments = new Protocol[Integer.parseInt(protocol.data)];
             acknowledge();
         }
 
-        synchronized (threadMonitor) { threadMonitor.notify(); }
+        unlock();
     }
 }
 
@@ -253,14 +253,16 @@ abstract class ConnectionThread extends Thread {
         }
     }
 
-    protected void lock() {
-        if (!isLocked) { return; }
-        isLocked = true;
+    protected synchronized void lock() {
         try {
-            synchronized (threadMonitor) { threadMonitor.wait(); }
+            while (isLocked) { wait(); }
         } catch (Exception e) {
-            Connection.log(e + " at " + e.getStackTrace()[0]);
+
         }
+    }
+
+    protected synchronized  void unlock() {
         isLocked = false;
+        notify();
     }
 }
