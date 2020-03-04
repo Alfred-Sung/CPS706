@@ -11,7 +11,7 @@ public abstract class Connection {
     public static String nickName;
 
     protected static final int PORT = 1000;
-    protected static final int TIMEOUT = 1000;
+    protected static final int TIMEOUT = 100;
     protected static final int MAXREPEAT = 10;
     protected static DatagramSocket socket;
 
@@ -20,7 +20,7 @@ public abstract class Connection {
             localMachine = InetAddress.getLocalHost();
             hostName = localMachine.getHostName();
             socket = new DatagramSocket(PORT);
-            socket.setSoTimeout(TIMEOUT);
+            //socket.setSoTimeout(TIMEOUT);
 
             System.out.println(localMachine.getHostAddress() + " : " + hostName);
         } catch (Exception e) {
