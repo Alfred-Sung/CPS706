@@ -1,5 +1,7 @@
 import java.net.DatagramPacket;
 import java.net.InetAddress;
+import java.net.SocketException;
+import java.net.SocketTimeoutException;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Queue;
@@ -137,7 +139,7 @@ class SendThread extends ConnectionThread {
 
                 // TODO: Fix
                 //Connection.socket.setSoTimeout(Connection.TIMEOUT);
-                synchronized (threadMonitor) { threadMonitor.wait(); }
+                lock();
 
                 switch (recent.status) {
                     case OK:
@@ -181,25 +183,16 @@ class ReceiveThread extends ConnectionThread {
 
     @Override
     public void run() {
-        if (fragments == null) {
-            try {
-                synchronized (threadMonitor) { threadMonitor.wait(); }
-            } catch (Exception e) {
-                Connection.log(e + " at " + e.getStackTrace()[0]);
-            }
+        lock();
+
+        for (int i = 0; i < fragments.length; i++) {
+            lock();
+
+            fragments[i] = recent;
+            acknowledge();
         }
 
-        try {
-            for (int i = 0; i < fragments.length; i++) {
-                synchronized (threadMonitor) { threadMonitor.wait(); }
-                fragments[i] = recent;
-                acknowledge();
-            }
-        } catch (Exception e) {
-            Connection.log(e + " at " + e.getStackTrace()[0]);
-
-            if (failedResponse != null) { failedResponse.invoke(address, recent, recent.data); }
-        }
+        //if (failedResponse != null) { failedResponse.invoke(address, recent, recent.data); }
 
         if (threadResponse != null) { threadResponse.invoke(address, recent, Protocol.constructData(fragments)); }
         UDPConnection.closeThread(address);
@@ -212,9 +205,9 @@ class ReceiveThread extends ConnectionThread {
             Protocol response = Protocol.create(Protocol.Status.OK)[0];
             DatagramPacket packet = new DatagramPacket(response.getBytes(), Protocol.LENGTH, address, Connection.PORT);
             Connection.socket.send(packet);
-            //Connection.socket.setSoTimeout(Connection.TIMEOUT);
+            Connection.socket.setSoTimeout(Connection.TIMEOUT);
         } catch (Exception e) {
-            Connection.log(e + " at " + e.getStackTrace()[0]);
+
         }
     }
 
@@ -237,6 +230,8 @@ abstract class ConnectionThread extends Thread {
     protected InetAddress address;
     protected Protocol recent;
 
+    protected boolean isLocked = false;
+
     Callback threadResponse;
     Callback failedResponse;
 
@@ -253,7 +248,19 @@ abstract class ConnectionThread extends Thread {
             recent = protocol;
             Connection.log(address, protocol);
 
+            isLocked = false;
             threadMonitor.notify();
         }
+    }
+
+    protected void lock() {
+        if (!isLocked) { return; }
+        isLocked = true;
+        try {
+            synchronized (threadMonitor) { threadMonitor.wait(); }
+        } catch (Exception e) {
+            Connection.log(e + " at " + e.getStackTrace()[0]);
+        }
+        isLocked = false;
     }
 }
