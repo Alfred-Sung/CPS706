@@ -34,7 +34,7 @@ public class ServerConnection extends Connection {
                     },
                     new Callback() {
                         @Override
-                        public void invoke(Protocol.Status status, String data) { System.out.println("Error!"); }
+                        public void invoke(Protocol.Status status, String data) { System.out.println("Invalid server IP"); }
                     }
             );
 

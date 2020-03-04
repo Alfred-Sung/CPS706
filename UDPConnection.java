@@ -9,14 +9,14 @@ import java.util.concurrent.TimeoutException;
  */
 interface Callback { void invoke(Protocol.Status status, String data); }
 public abstract class UDPConnection extends Thread {
-    public static final Object monitor = new Object();
+    public static final Object UDPMonitor = new Object();
     private static HashMap<InetAddress, ConnectionThread> threads = new HashMap<InetAddress, ConnectionThread>();
 
     public static void closeThread(InetAddress address) {
         System.out.println("Thread closed\n");
         threads.remove(address);
 
-        synchronized (monitor) { monitor.notify(); }
+        synchronized (UDPMonitor) { UDPMonitor.notify(); }
     }
 
     @Override
@@ -35,7 +35,7 @@ public abstract class UDPConnection extends Thread {
                     keyNotFound(address, protocol);
                 }
             } catch (Exception e) {
-                //System.out.println(e + " at " + e.getStackTrace()[0]);
+                System.out.println(e + " at " + e.getStackTrace()[0]);
             }
         }
     }
@@ -49,9 +49,9 @@ public abstract class UDPConnection extends Thread {
         thread.start();
 
         try {
-            synchronized (monitor) { monitor.wait(); }
+            synchronized (UDPMonitor) { UDPMonitor.wait(); }
         } catch (Exception e) {
-            //System.out.println(e + " at " + e.getStackTrace()[0]);
+            System.out.println(e + " at " + e.getStackTrace()[0]);
         }
     }
 
@@ -62,9 +62,9 @@ public abstract class UDPConnection extends Thread {
         thread.start();
 
         try {
-            synchronized (monitor) { monitor.wait(); }
+            synchronized (UDPMonitor) { UDPMonitor.wait(); }
         } catch (Exception e) {
-            //System.out.println(e + " at " + e.getStackTrace()[0]);
+            System.out.println(e + " at " + e.getStackTrace()[0]);
         }
     }
     public void receive(InetAddress fromIP, Protocol header) { receive(fromIP, header,null, null); }
@@ -75,9 +75,9 @@ public abstract class UDPConnection extends Thread {
         thread.pass(header);
 
         try {
-            synchronized (monitor) { monitor.wait(); }
+            synchronized (UDPMonitor) { UDPMonitor.wait(); }
         } catch (Exception e) {
-            //System.out.println(e + " at " + e.getStackTrace()[0]);
+            System.out.println(e + " at " + e.getStackTrace()[0]);
         }
     }
 
@@ -101,9 +101,10 @@ class SendThread extends ConnectionThread {
             try {
                 DatagramPacket packet = new DatagramPacket(outbound[i].getBytes(), Protocol.LENGTH, address, Connection.PORT);
                 Connection.socket.send(packet);
-                Connection.socket.setSoTimeout(Connection.TIMEOUT);
 
-                synchronized (monitor) { monitor.wait(); }
+                // TODO: Fix
+                Connection.socket.setSoTimeout(Connection.TIMEOUT);
+                synchronized (threadMonitor) { threadMonitor.wait(); }
 
                 switch (recent.status) {
                     case OK:
@@ -114,7 +115,7 @@ class SendThread extends ConnectionThread {
                         break;
                 }
             } catch (Exception e) {
-                //System.out.println(e + " at " + e.getStackTrace()[0]);
+                System.out.println(e + " at " + e.getStackTrace()[0]);
 
                 i--;
                 if (fail()) { return; };
@@ -145,9 +146,9 @@ class ReceiveThread extends ConnectionThread {
         super(fromIP, threadResponse, failedResponse);
 
         try {
-            synchronized (monitor) { monitor.wait(); }
+            synchronized (threadMonitor) { threadMonitor.wait(); }
         } catch (Exception e) {
-            //System.out.println(e + " at " + e.getStackTrace()[0]);
+            System.out.println(e + " at " + e.getStackTrace()[0]);
         }
     }
 
@@ -155,12 +156,12 @@ class ReceiveThread extends ConnectionThread {
     public void run() {
         try {
             for (int i = 0; i < fragments.length; i++) {
-                synchronized (monitor) { monitor.wait(); }
+                synchronized (threadMonitor) { threadMonitor.wait(); }
                 fragments[i] = recent;
                 acknowledge();
             }
         } catch (Exception e) {
-            //System.out.println(e + " at " + e.getStackTrace()[0]);
+            System.out.println(e + " at " + e.getStackTrace()[0]);
 
             if (failedResponse != null) { failedResponse.invoke(Protocol.Status.ERROR, ""); }
         }
@@ -178,7 +179,7 @@ class ReceiveThread extends ConnectionThread {
             Connection.socket.send(packet);
             Connection.socket.setSoTimeout(Connection.TIMEOUT);
         } catch (Exception e) {
-            //System.out.println(e + " at " + e.getStackTrace()[0]);
+            System.out.println(e + " at " + e.getStackTrace()[0]);
         }
     }
 
@@ -189,14 +190,14 @@ class ReceiveThread extends ConnectionThread {
 
         if (protocol.sequence == 0) { fragments = new Protocol[Integer.parseInt(protocol.data)]; }
 
-        synchronized (monitor) {
-            if (recent.sequence >= fragments.length) { monitor.notify(); }
+        synchronized (threadMonitor) {
+            if (recent.sequence >= fragments.length) { threadMonitor.notify(); }
         }
     }
 }
 
 abstract class ConnectionThread extends Thread {
-    protected static final Object monitor = new Object();
+    protected static final Object threadMonitor = new Object();
     protected InetAddress address;
     protected Protocol recent;
 
@@ -210,11 +211,11 @@ abstract class ConnectionThread extends Thread {
     }
 
     public void pass(Protocol protocol){
-        synchronized (monitor) {
+        synchronized (threadMonitor) {
             recent = protocol;
             System.out.println(address + "> " + protocol.status + " " + protocol.data);
 
-            monitor.notify();
+            threadMonitor.notify();
         }
     }
 }
