@@ -17,7 +17,6 @@ public class ServerConnection extends Connection {
             @Override
             public void keyNotFound(InetAddress address, Protocol protocol) { send(address, Protocol.create(Protocol.Status.ERROR)); }
         };
-
         UDP.start();
     }
 
@@ -51,7 +50,7 @@ public class ServerConnection extends Connection {
             UDP.awaitReceive(serverAddress,
                     new Callback() {
                         @Override
-                        public void invoke(InetAddress address, Protocol protocol, String data) { System.out.println("Test"); }
+                        public void invoke(InetAddress address, Protocol protocol, String data) { }
                     },
                     new Callback() {
                         @Override
@@ -63,7 +62,7 @@ public class ServerConnection extends Connection {
             return "";
         }
 
-        return "End";
+        return "";
     }
 
     public void joinChat(String peerIP) {

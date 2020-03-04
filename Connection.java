@@ -39,9 +39,9 @@ public abstract class Connection {
     public static void log(InetAddress address, Protocol protocol) {
         if (!VERBOSE) { return; }
         if (address.equals(localMachine)) {
-            System.out.println("@> "  + protocol.status + " " + protocol.data);
+            System.out.println("@> " + protocol.sequence + " " + protocol.status + " \"" + protocol.data + "\"");
         } else {
-            System.out.println(address + "> "  + protocol.status + " " + protocol.data);
+            System.out.println(address + "> " + protocol.sequence + " " + protocol.status + " \"" + protocol.data + "\"");
         }
     }
 }

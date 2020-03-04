@@ -179,23 +179,38 @@ class ReceiveThread extends ConnectionThread {
         super(fromIP, threadResponse, failedResponse);
     }
 
+    /*
     @Override
     public void run() {
         try {
             synchronized (threadMonitor) { threadMonitor.wait(); }
         } catch (Exception e) {
-            //Connection.log(e + " at " + e.getStackTrace()[0]);
+            Connection.log(e + " at " + e.getStackTrace()[0]);
         }
 
         try {
+            System.out.println("AAAAAAAAAAA: " + fragments.length);
             for (int i = 0; i < fragments.length; i++) {
                 synchronized (threadMonitor) { threadMonitor.wait(); }
                 fragments[i] = recent;
                 acknowledge();
             }
         } catch (Exception e) {
-            //Connection.log(e + " at " + e.getStackTrace()[0]);
+            Connection.log(e + " at " + e.getStackTrace()[0]);
 
+            if (failedResponse != null) { failedResponse.invoke(address, recent, recent.data); }
+        }
+
+        if (threadResponse != null) { threadResponse.invoke(address, recent, Protocol.constructData(fragments)); }
+        UDPConnection.closeThread(address);
+    }
+    */
+    @Override
+    public void run() {
+        try {
+            synchronized (threadMonitor) { threadMonitor.wait(); }
+        } catch (Exception e) {
+            Connection.log(e + " at " + e.getStackTrace()[0]);
             if (failedResponse != null) { failedResponse.invoke(address, recent, recent.data); }
         }
 
@@ -223,8 +238,11 @@ class ReceiveThread extends ConnectionThread {
 
         if (protocol.sequence == 0) {
             fragments = new Protocol[Integer.parseInt(protocol.data)];
-            acknowledge();
+        } else {
+            fragments[recent.sequence - 1] = protocol;
         }
+
+        acknowledge();
 
         synchronized (threadMonitor) {
             if (recent.sequence >= fragments.length) { threadMonitor.notify(); }
