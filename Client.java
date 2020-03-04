@@ -35,7 +35,6 @@ public class Client {
             } while (Connection.nickName.equals(""));
 
             validServer = server.connect(serverIP);
-            System.out.println(validServer ? "Server connected!" : "Bad server IP");
         } while (!validServer);
 
         System.out.println(server.getDirectory());

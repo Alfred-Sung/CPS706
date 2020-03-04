@@ -32,6 +32,7 @@ public class Server extends Connection {
     };
 
     public static void main(String args[]) {
+        //VERBOSE = true;
         nickName = "Server";
 
         UDPConnection UDP = new UDPConnection() {

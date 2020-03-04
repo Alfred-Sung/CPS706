@@ -9,11 +9,14 @@ import java.util.concurrent.TimeoutException;
  */
 interface Callback { void invoke(Protocol.Status status, String data); }
 public abstract class UDPConnection extends Thread {
+    public static final Object monitor = new Object();
     private static HashMap<InetAddress, ConnectionThread> threads = new HashMap<InetAddress, ConnectionThread>();
 
     public static void closeThread(InetAddress address) {
         System.out.println("Thread closed\n");
         threads.remove(address);
+
+        synchronized (monitor) { monitor.notify(); }
     }
 
     @Override
@@ -32,7 +35,7 @@ public abstract class UDPConnection extends Thread {
                     keyNotFound(address, protocol);
                 }
             } catch (Exception e) {
-                System.out.println(e + " at " + e.getStackTrace()[0]);
+                //System.out.println(e + " at " + e.getStackTrace()[0]);
             }
         }
     }
@@ -44,6 +47,12 @@ public abstract class UDPConnection extends Thread {
         ConnectionThread thread = new SendThread(toIP, fragments, threadResponse, failResponse);
         threads.put(toIP, thread);
         thread.start();
+
+        try {
+            synchronized (monitor) { monitor.wait(); }
+        } catch (Exception e) {
+            //System.out.println(e + " at " + e.getStackTrace()[0]);
+        }
     }
 
     public void receive(InetAddress fromIP) { receive(fromIP,null, null); }
@@ -51,6 +60,12 @@ public abstract class UDPConnection extends Thread {
         ConnectionThread thread = new ReceiveThread(fromIP, threadResponse, failResponse);
         threads.put(fromIP, thread);
         thread.start();
+
+        try {
+            synchronized (monitor) { monitor.wait(); }
+        } catch (Exception e) {
+            //System.out.println(e + " at " + e.getStackTrace()[0]);
+        }
     }
     public void receive(InetAddress fromIP, Protocol header) { receive(fromIP, header,null, null); }
     public void receive(InetAddress fromIP, Protocol header, Callback threadResponse, Callback failResponse) {
@@ -58,6 +73,12 @@ public abstract class UDPConnection extends Thread {
         threads.put(fromIP, thread);
         thread.start();
         thread.pass(header);
+
+        try {
+            synchronized (monitor) { monitor.wait(); }
+        } catch (Exception e) {
+            //System.out.println(e + " at " + e.getStackTrace()[0]);
+        }
     }
 
     public abstract void keyNotFound(InetAddress address, Protocol protocol);
@@ -80,6 +101,7 @@ class SendThread extends ConnectionThread {
             try {
                 DatagramPacket packet = new DatagramPacket(outbound[i].getBytes(), Protocol.LENGTH, address, Connection.PORT);
                 Connection.socket.send(packet);
+                Connection.socket.setSoTimeout(Connection.TIMEOUT);
 
                 synchronized (monitor) { monitor.wait(); }
 
@@ -92,6 +114,8 @@ class SendThread extends ConnectionThread {
                         break;
                 }
             } catch (Exception e) {
+                //System.out.println(e + " at " + e.getStackTrace()[0]);
+
                 i--;
                 if (fail()) { return; };
             }
@@ -123,7 +147,7 @@ class ReceiveThread extends ConnectionThread {
         try {
             synchronized (monitor) { monitor.wait(); }
         } catch (Exception e) {
-
+            //System.out.println(e + " at " + e.getStackTrace()[0]);
         }
     }
 
@@ -136,6 +160,8 @@ class ReceiveThread extends ConnectionThread {
                 acknowledge();
             }
         } catch (Exception e) {
+            //System.out.println(e + " at " + e.getStackTrace()[0]);
+
             if (failedResponse != null) { failedResponse.invoke(Protocol.Status.ERROR, ""); }
         }
 
@@ -143,14 +169,16 @@ class ReceiveThread extends ConnectionThread {
         UDPConnection.closeThread(address);
     }
 
+    // TODO: Handle packet resending
     void acknowledge() {
         try {
             System.out.println("Acknowledged!");
             Protocol response = Protocol.create(Protocol.Status.OK)[0];
             DatagramPacket packet = new DatagramPacket(response.getBytes(), Protocol.LENGTH, address, Connection.PORT);
             Connection.socket.send(packet);
+            Connection.socket.setSoTimeout(Connection.TIMEOUT);
         } catch (Exception e) {
-            System.out.println(e + " at " + e.getStackTrace()[0]);
+            //System.out.println(e + " at " + e.getStackTrace()[0]);
         }
     }
 
