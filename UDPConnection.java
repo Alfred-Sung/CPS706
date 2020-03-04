@@ -101,9 +101,10 @@ class SendThread extends ConnectionThread {
             try {
                 DatagramPacket packet = new DatagramPacket(outbound[i].getBytes(), Protocol.LENGTH, address, Connection.PORT);
                 Connection.socket.send(packet);
+                Connection.log(outbound[i]);
 
                 // TODO: Fix
-                Connection.socket.setSoTimeout(Connection.TIMEOUT);
+                //Connection.socket.setSoTimeout(Connection.TIMEOUT);
                 synchronized (threadMonitor) { threadMonitor.wait(); }
 
                 switch (recent.status) {
@@ -151,7 +152,7 @@ class ReceiveThread extends ConnectionThread {
         try {
             synchronized (threadMonitor) { threadMonitor.wait(); }
         } catch (Exception e) {
-            //System.out.println(e + " at " + e.getStackTrace()[0]);
+            //Connection.log(e + " at " + e.getStackTrace()[0]);
         }
 
         try {
@@ -161,7 +162,7 @@ class ReceiveThread extends ConnectionThread {
                 acknowledge();
             }
         } catch (Exception e) {
-            //System.out.println(e + " at " + e.getStackTrace()[0]);
+            //Connection.log(e + " at " + e.getStackTrace()[0]);
 
             if (failedResponse != null) { failedResponse.invoke(Protocol.Status.ERROR, ""); }
         }
@@ -173,13 +174,13 @@ class ReceiveThread extends ConnectionThread {
     // TODO: Handle packet resending
     void acknowledge() {
         try {
-            System.out.println("Acknowledged!");
+            Connection.log("Acknowledged!");
             Protocol response = Protocol.create(Protocol.Status.OK)[0];
             DatagramPacket packet = new DatagramPacket(response.getBytes(), Protocol.LENGTH, address, Connection.PORT);
             Connection.socket.send(packet);
             Connection.socket.setSoTimeout(Connection.TIMEOUT);
         } catch (Exception e) {
-            //System.out.println(e + " at " + e.getStackTrace()[0]);
+            //Connection.log(e + " at " + e.getStackTrace()[0]);
         }
     }
 
@@ -208,7 +209,7 @@ abstract class ConnectionThread extends Thread {
     Callback failedResponse;
 
     public ConnectionThread(InetAddress address, Callback threadResponse, Callback failedResponse) {
-        System.out.println("New Thread");
+        Connection.log("New Thread");
 
         this.address = address;
         this.threadResponse = threadResponse;
@@ -218,7 +219,7 @@ abstract class ConnectionThread extends Thread {
     public void pass(Protocol protocol){
         synchronized (threadMonitor) {
             recent = protocol;
-            System.out.println(address + "> " + protocol.status + " " + protocol.data);
+            Connection.log(address, protocol);
 
             threadMonitor.notify();
         }

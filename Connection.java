@@ -10,7 +10,7 @@ public abstract class Connection {
     public static String hostName;
     public static String nickName;
 
-    public static boolean VERBOSE = false;
+    public static boolean VERBOSE = true;
 
     protected static final int PORT = 1000;
     protected static final int TIMEOUT = 100;
@@ -28,6 +28,20 @@ public abstract class Connection {
         } catch (Exception e) {
             System.out.println(e);
             System.exit(1);
+        }
+    }
+
+    public static void log(String message) {
+        if (!VERBOSE) { return; }
+        System.out.println(message);
+    }
+    public static void log(Protocol protocol) { log(localMachine, protocol); }
+    public static void log(InetAddress address, Protocol protocol) {
+        if (!VERBOSE) { return; }
+        if (address.equals(localMachine)) {
+            System.out.println("@> "  + protocol.status + " " + protocol.data);
+        } else {
+            System.out.println(address + "> "  + protocol.status + " " + protocol.data);
         }
     }
 }
