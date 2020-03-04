@@ -31,7 +31,6 @@ public class Protocol {
         List<Protocol> fragments = new LinkedList<>();
         fragments.add(new Protocol(status, 0, String.valueOf(dataFragments.size())));
         for (int i = 0; i < dataFragments.size(); i++) {
-            System.out.println(dataFragments.get(i));
             fragments.add(new Protocol(status, i + 1, dataFragments.get(i)));
         }
 

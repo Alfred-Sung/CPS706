@@ -51,9 +51,7 @@ public class ServerConnection extends Connection {
             UDP.awaitReceive(serverAddress,
                     new Callback() {
                         @Override
-                        public void invoke(InetAddress address, Protocol protocol, String data) {
-                            System.out.println(data);
-                        }
+                        public void invoke(InetAddress address, Protocol protocol, String data) { System.out.println("Test"); }
                     },
                     new Callback() {
                         @Override

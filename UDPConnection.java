@@ -28,7 +28,7 @@ public abstract class UDPConnection extends Thread {
     public static void closeThread(InetAddress address) {
         Connection.log("Thread closed\n");
 
-        threads.remove(address).remove();
+        threads.get(address).remove();
         if (threads.get(address).size() > 0) {
             threads.get(address).peek().start();
         } else {
@@ -65,7 +65,6 @@ public abstract class UDPConnection extends Thread {
     public void send(InetAddress toIP, Protocol[] fragments, Callback threadResponse, Callback failResponse) {
         ConnectionThread thread = new SendThread(toIP, fragments, threadResponse, failResponse);
         UDPConnection.spawnThread(toIP, thread);
-        thread.start();
     }
 
     public void awaitSend(InetAddress toIP, Protocol[] fragments) { awaitSend(toIP, fragments, null, null); }
@@ -90,7 +89,6 @@ public abstract class UDPConnection extends Thread {
     public void receive(InetAddress fromIP, Protocol header, Callback threadResponse, Callback failResponse) {
         ConnectionThread thread = new ReceiveThread(fromIP, threadResponse, failResponse);
         UDPConnection.spawnThread(fromIP, thread);
-        thread.start();
         thread.pass(header);
     }
 
@@ -212,7 +210,7 @@ class ReceiveThread extends ConnectionThread {
             Protocol response = Protocol.create(Protocol.Status.OK)[0];
             DatagramPacket packet = new DatagramPacket(response.getBytes(), Protocol.LENGTH, address, Connection.PORT);
             Connection.socket.send(packet);
-            Connection.socket.setSoTimeout(Connection.TIMEOUT);
+            //Connection.socket.setSoTimeout(Connection.TIMEOUT);
         } catch (Exception e) {
             //Connection.log(e + " at " + e.getStackTrace()[0]);
         }
@@ -243,7 +241,7 @@ abstract class ConnectionThread extends Thread {
     Callback failedResponse;
 
     public ConnectionThread(InetAddress address, Callback threadResponse, Callback failedResponse) {
-        Connection.log("New Thread");
+        Connection.log("New Thread: " + this.getClass().getSimpleName());
 
         this.address = address;
         this.threadResponse = threadResponse;

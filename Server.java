@@ -25,7 +25,7 @@ public class Server extends Connection {
                 case OFFLINE:
                     break;
                 case QUERY:
-                    UDP.send(address, Protocol.create(Protocol.Status.OK, directory.getDirectory()));
+                    UDP.send(address, Protocol.create(Protocol.Status.OK, directory.print()));
                     break;
                 case JOIN:
                     break;
@@ -42,7 +42,7 @@ public class Server extends Connection {
         UDP = new UDPConnection() {
             @Override
             public void keyNotFound(InetAddress address, Protocol protocol) {
-                awaitReceive(address, protocol,
+                receive(address, protocol,
                         clientResponse,
                         new Callback() {
                             @Override
