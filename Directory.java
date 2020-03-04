@@ -22,6 +22,12 @@ public class Directory {
         return null;
     }
 
+    public void add(InetAddress address, Protocol protocol) {
+        Profile profile = new Profile(address, protocol);
+        list.put(address, profile);
+        usernames.put(protocol.nickName, address);
+    }
+
     public void parse(String input) {
         list = new HashMap<>();
         usernames = new HashMap<>();

@@ -27,14 +27,14 @@ public class ServerConnection extends Connection {
             UDP.send(temp, Protocol.Status.ONLINE,
                     new Callback() {
                         @Override
-                        public void invoke(Protocol.Status status, String data) {
+                        public void invoke(InetAddress address, Protocol protocol, String data) {
                             System.out.println("Connected!");
                             ServerConnection.serverAddress = temp;
                         }
                     },
                     new Callback() {
                         @Override
-                        public void invoke(Protocol.Status status, String data) { System.out.println("Invalid server IP"); }
+                        public void invoke(InetAddress address, Protocol protocol, String data) { System.out.println("Invalid server IP"); }
                     }
             );
 
@@ -51,13 +51,13 @@ public class ServerConnection extends Connection {
             UDP.receive(serverAddress,
                     new Callback() {
                         @Override
-                        public void invoke(Protocol.Status status, String data) {
+                        public void invoke(InetAddress address, Protocol protocol, String data) {
                             System.out.println(data);
                         }
                     },
                     new Callback() {
                         @Override
-                        public void invoke(Protocol.Status status, String data) { System.out.println("Error"); }
+                        public void invoke(InetAddress address, Protocol protocol, String data) { System.out.println("Error"); }
                     }
             );
         } catch (Exception e) {

@@ -10,18 +10,23 @@ import java.time.LocalDateTime;
 // TODO: Respond to incoming requests
 // TODO: Handle fragmented packets
 public class Server extends Connection {
-    // <IP Address, ServerThread>
+    public static UDPConnection UDP;
+    public static Directory directory = new Directory();
     static int totalUsers;
-    static Directory directory;
+
     static Callback clientResponse = new Callback() {
         @Override
-        public void invoke(Protocol.Status status, String data) {
-            switch (status) {
+        public void invoke(InetAddress address, Protocol protocol, String data) {
+            switch (protocol.status) {
                 case ONLINE:
+                    // TODO: Add user to directory
+                    Connection.log("Added user to directory");
+                    directory.add(address, protocol);
                     break;
                 case OFFLINE:
                     break;
                 case QUERY:
+                    UDP.send(address, Protocol.create(Protocol.Status.OK, directory.getDirectory()));
                     break;
                 case JOIN:
                     break;
@@ -35,14 +40,14 @@ public class Server extends Connection {
         //VERBOSE = true;
         nickName = "Server";
 
-        UDPConnection UDP = new UDPConnection() {
+        UDP = new UDPConnection() {
             @Override
             public void keyNotFound(InetAddress address, Protocol protocol) {
                 receive(address, protocol,
                         clientResponse,
                         new Callback() {
                             @Override
-                            public void invoke(Protocol.Status status, String data) {
+                            public void invoke(InetAddress address, Protocol protocol, String data) {
                                 send(address, Protocol.create(Protocol.Status.ERROR));
                             }
                         }

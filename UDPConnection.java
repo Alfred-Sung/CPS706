@@ -7,7 +7,7 @@ import java.util.concurrent.TimeoutException;
 /**
  * Handles sending, splitting and reconstructing protocol packets
  */
-interface Callback { void invoke(Protocol.Status status, String data); }
+interface Callback { void invoke(InetAddress address, Protocol protocol, String data); }
 public abstract class UDPConnection extends Thread {
     public static final Object UDPMonitor = new Object();
     private static HashMap<InetAddress, ConnectionThread> threads = new HashMap<InetAddress, ConnectionThread>();
@@ -123,14 +123,14 @@ class SendThread extends ConnectionThread {
             }
         }
 
-        if (threadResponse != null) { threadResponse.invoke(Protocol.Status.OK, ""); }
+        if (threadResponse != null) { threadResponse.invoke(address, recent, recent.data); }
         UDPConnection.closeThread(address);
     }
 
     boolean fail() {
         failed++;
         if (failed > Connection.MAXREPEAT) {
-            if (failedResponse != null) { failedResponse.invoke(Protocol.Status.ERROR, ""); }
+            if (failedResponse != null) { failedResponse.invoke(address, recent, recent.data); }
             UDPConnection.closeThread(address);
             return true;
         }
@@ -164,10 +164,10 @@ class ReceiveThread extends ConnectionThread {
         } catch (Exception e) {
             //Connection.log(e + " at " + e.getStackTrace()[0]);
 
-            if (failedResponse != null) { failedResponse.invoke(Protocol.Status.ERROR, ""); }
+            if (failedResponse != null) { failedResponse.invoke(address, recent, recent.data); }
         }
 
-        if (threadResponse != null) { threadResponse.invoke(Protocol.Status.OK, Protocol.constructData(fragments)); }
+        if (threadResponse != null) { threadResponse.invoke(address, recent, Protocol.constructData(fragments)); }
         UDPConnection.closeThread(address);
     }
 
