@@ -10,8 +10,10 @@ public abstract class Connection {
     public static String hostName;
     public static String nickName;
 
+    public static boolean VERBOSE = true;
+
     protected static final int PORT = 1000;
-    protected static final int TIMEOUT = 1000;
+    protected static final int TIMEOUT = 100;
     protected static final int MAXREPEAT = 10;
     protected static DatagramSocket socket;
 
@@ -20,11 +22,30 @@ public abstract class Connection {
             localMachine = InetAddress.getLocalHost();
             hostName = localMachine.getHostName();
             socket = new DatagramSocket(PORT);
+            //socket.setSoTimeout(TIMEOUT);
 
             System.out.println(localMachine.getHostAddress() + " : " + hostName);
         } catch (Exception e) {
             System.out.println(e);
             System.exit(1);
+        }
+    }
+
+    /**
+     * Debug methods that print out a formatted version
+     * Also checks if VERBOSE is on
+     */
+    public static void log(String message) {
+        if (!VERBOSE) { return; }
+        System.out.println(message);
+    }
+    public static void log(Protocol protocol) { log(localMachine, protocol); }
+    public static void log(InetAddress address, Protocol protocol) {
+        if (!VERBOSE) { return; }
+        if (address.equals(localMachine)) {
+            System.out.println("@> " + protocol.sequence + " " + protocol.status + " \"" + protocol.data + "\"");
+        } else {
+            System.out.println(address + "> " + protocol.sequence + " " + protocol.status + " \"" + protocol.data + "\"");
         }
     }
 }

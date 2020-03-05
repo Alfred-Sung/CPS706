@@ -2,11 +2,15 @@ import java.nio.ByteBuffer;
 import java.util.*;
 
 /**
- * HTTP-like protocol that is attached to every packet sent between client-server
+ * HTTP-like protocol
+ * Handles splitting a message into 80 byte instances to be put in a UDP packet
+ *
+ * Leading packets' data field will always contain the number of subsequent packets
  */
 // TODO: Implement fragmented packets
 public class Protocol {
     public static final int LENGTH = 80;
+    public static final int DATALENGTH = 40;
     Status status; //4 bytes
     Integer sequence; //4 bytes
 
@@ -15,35 +19,37 @@ public class Protocol {
 
     String data; //40 bytes
 
-    public static Protocol create(Status status) { return new Protocol(status, 0, "0"); }
-    public static Protocol create(byte[] data) { return new Protocol(data); }
+    /**
+     * Methods to create Protocol packets
+     * Automatically handles splitting
+     */
+    public static Protocol[] create(Status status) { return new Protocol[] { new Protocol(status, 0, "0") }; }
+    public static Protocol[] create(byte[] data) { return new Protocol[] { new Protocol(data) }; }
     public static Protocol[] create(Status status, String data) { return split(status, data); }
 
     /**
-     * When Protocol packets are split, the leading Protocol (sequence number: 0) will contain the number of subsequent packets in the data field
+     * Splits and creates multiple protocol packets based on an input message
      */
     private static Protocol[] split(Status status, String data) {
-        List<Protocol> fragments = new LinkedList<>();
-        //String[] dataFragments = data.split("(?<=\\G.{40})");
-
+        // Split data string into chunks of length DATALENGTH
         List<String> dataFragments = new LinkedList<>();
-        for (int start = 0; start < data.length(); start += 40) {
-            dataFragments.add(data.substring(start, Math.min(data.length(), start + 40)));
+        for (int start = 0; start < data.length(); start += DATALENGTH) {
+            dataFragments.add(data.substring(start, Math.min(data.length(), start + DATALENGTH)));
         }
 
-        System.out.println("String Length: " + data.length());
-        System.out.println("Byte Length: " + data.getBytes().length);
-        System.out.println("Length: " + dataFragments.size());
 
+        List<Protocol> fragments = new LinkedList<>();
         fragments.add(new Protocol(status, 0, String.valueOf(dataFragments.size())));
         for (int i = 0; i < dataFragments.size(); i++) {
-            System.out.println(dataFragments.get(i));
             fragments.add(new Protocol(status, i + 1, dataFragments.get(i)));
         }
 
         return fragments.toArray(new Protocol[0]);
     }
 
+    /**
+     * Reconstructs a message from multiple Protocol packets
+     */
     public static String constructData(Protocol[] fragments) {
         StringBuilder result = new StringBuilder();
         for (Protocol frag : fragments) {
