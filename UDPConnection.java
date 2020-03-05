@@ -24,15 +24,20 @@ public abstract class UDPConnection extends Thread {
             threads.put(address, queue);
         }
 
-        if (threads.get(address).size() == 1) { threads.get(address).peek().start(); }
+        if (threads.get(address).size() == 1) {
+            thread.start();
+            Connection.log("-- New Thread: " + thread.getClass().getSimpleName());
+        }
     }
 
     public static void closeThread(InetAddress address) {
-        Connection.log("Thread closed\n");
+        Connection.log("-- Thread closed\n");
 
         threads.get(address).remove();
         if (threads.get(address).size() > 0) {
-            threads.get(address).peek().start();
+            ConnectionThread next = threads.get(address).peek();
+            next.start();
+            Connection.log("-- New Thread: " + next.getClass().getSimpleName());
         } else {
             threads.remove(address);
         }
@@ -143,7 +148,7 @@ class SendThread extends ConnectionThread {
                 switch (recent.status) {
                     case OK:
                         break;
-                    case ERROR:
+                    default:
                         i--;
                         if (fail()) { return; };
                         break;
@@ -226,8 +231,6 @@ abstract class ConnectionThread extends Thread {
     int failed = 0;
 
     public ConnectionThread(InetAddress address, Callback threadResponse, Callback failedResponse) {
-        Connection.log("New Thread: " + this.getClass().getSimpleName());
-
         this.address = address;
         this.threadResponse = threadResponse;
         this.failedResponse = failedResponse;
@@ -262,7 +265,7 @@ abstract class ConnectionThread extends Thread {
         }
     }
 
-    protected synchronized  void unlock() {
+    protected synchronized void unlock() {
         isLocked = false;
         notify();
     }
