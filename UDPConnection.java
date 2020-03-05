@@ -119,7 +119,6 @@ public abstract class UDPConnection extends Thread {
 }
 
 class SendThread extends ConnectionThread {
-    int failed = 0;
     InetAddress toIP;
     Protocol[] outbound;
 
@@ -140,6 +139,7 @@ class SendThread extends ConnectionThread {
                 // TODO: Fix
                 //Connection.socket.setSoTimeout(Connection.TIMEOUT);
                 lock();
+                isLocked = true;
 
                 switch (recent.status) {
                     case OK:
@@ -160,17 +160,6 @@ class SendThread extends ConnectionThread {
         if (threadResponse != null) { threadResponse.invoke(address, recent, recent.data); }
         UDPConnection.closeThread(address);
     }
-
-    boolean fail() {
-        failed++;
-        if (failed > Connection.MAXREPEAT) {
-            if (failedResponse != null) { failedResponse.invoke(address, recent, recent.data); }
-            UDPConnection.closeThread(address);
-            return true;
-        }
-
-        return false;
-    }
 }
 
 class ReceiveThread extends ConnectionThread {
@@ -184,9 +173,11 @@ class ReceiveThread extends ConnectionThread {
     @Override
     public void run() {
         lock();
+        isLocked = true;
 
         for (int i = 0; i < fragments.length; i++) {
             lock();
+            isLocked = true;
 
             fragments[i] = recent;
             acknowledge();
@@ -230,10 +221,12 @@ abstract class ConnectionThread extends Thread {
     protected InetAddress address;
     protected Protocol recent;
 
-    protected boolean isLocked = false;
+    protected boolean isLocked = true;
 
     Callback threadResponse;
     Callback failedResponse;
+
+    int failed = 0;
 
     public ConnectionThread(InetAddress address, Callback threadResponse, Callback failedResponse) {
         Connection.log("New Thread: " + this.getClass().getSimpleName());
@@ -251,6 +244,17 @@ abstract class ConnectionThread extends Thread {
             isLocked = false;
             threadMonitor.notify();
         }
+    }
+
+    protected boolean fail() {
+        failed++;
+        if (failed > Connection.MAXREPEAT) {
+            if (failedResponse != null) { failedResponse.invoke(address, recent, recent.data); }
+            UDPConnection.closeThread(address);
+            return true;
+        }
+
+        return false;
     }
 
     protected synchronized void lock() {
