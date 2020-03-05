@@ -8,13 +8,26 @@ import java.util.Queue;
 import java.util.concurrent.TimeoutException;
 
 /**
- * Handles sending, splitting and reconstructing protocol packets
+ * Handles UDPConnection and multithreading
+ * Both Client and Server uses this class as the procedure is the same only with different responses
+ *
+ * Important to note that each thread has a callback; custom code that will be executed after the thread is done running
+ * Since it's hard to get threads to return anything and when they'll finish, I opted for the callback method
+ * This also allows us to "chain" together threads quite easily
  */
 interface Callback { void invoke(InetAddress address, Protocol protocol, String data); }
 public abstract class UDPConnection extends Thread {
     public static final Object UDPMonitor = new Object();
+
+    // Each UDP request is identified by it's sender IP and holds a queue of threads waiting to be executed
+    // Each IP's thread can only be executed one at a time before it is dequeued
     private static HashMap<InetAddress, Queue<ConnectionThread>> threads = new HashMap<>();
 
+    /**
+     * Spawns a new thread and enqueues it to the correct IP mapping
+     * @param address - IP address of the sender
+     * @param thread - Thread to be executed
+     */
     public static void spawnThread(InetAddress address, ConnectionThread thread) {
         if (threads.containsKey(address)) {
             threads.get(address).add(thread);
@@ -30,6 +43,10 @@ public abstract class UDPConnection extends Thread {
         }
     }
 
+    /**
+     * Called when a thread is done execution
+     * @param address - IP address of the sender
+     */
     public static void closeThread(InetAddress address) {
         Connection.log("-- Thread closed\n");
 
@@ -42,9 +59,14 @@ public abstract class UDPConnection extends Thread {
             threads.remove(address);
         }
 
+        // Unblock any awaitSend/awaitReceive
         synchronized (UDPMonitor) { UDPMonitor.notify(); }
     }
 
+    /**
+     * UDPConnection runs as its own thread because we want it to constantly check for incoming UDP packets
+     * Doing this in the main thread will lock up any other processes so we move this function into its own thread
+     */
     @Override
     public void run() {
         while (true) {
@@ -66,6 +88,10 @@ public abstract class UDPConnection extends Thread {
         }
     }
 
+    /**
+     * Sends UDP packets to a specified IP
+     * NOTE: NOT RECOMMENDED TO USE OTHER THAN FOR THREADING STUFF
+     */
     public void send(InetAddress toIP, Protocol[] fragments) { send(toIP, fragments, null, null); }
     public void send(InetAddress toIP, Protocol.Status status) { send(toIP, Protocol.create(status), null, null); }
     public void send(InetAddress toIP, Protocol.Status status, Callback threadResponse, Callback failResponse) { send(toIP, Protocol.create(status), threadResponse, failResponse); }
@@ -74,6 +100,9 @@ public abstract class UDPConnection extends Thread {
         UDPConnection.spawnThread(toIP, thread);
     }
 
+    /**
+     * Same as send() except awaitSend() will wait until the thread is completed before letting the code continue
+     */
     public void awaitSend(InetAddress toIP, Protocol[] fragments) { awaitSend(toIP, fragments, null, null); }
     public void awaitSend(InetAddress toIP, Protocol.Status status) { awaitSend(toIP, Protocol.create(status), null, null); }
     public void awaitSend(InetAddress toIP, Protocol.Status status, Callback threadResponse, Callback failResponse) { awaitSend(toIP, Protocol.create(status), threadResponse, failResponse); }
@@ -87,6 +116,11 @@ public abstract class UDPConnection extends Thread {
         }
     }
 
+    /**
+     * Receives UDP packets from a specified IP source
+     * Returns information in the callback
+     * NOTE: NOT RECOMMENDED TO USE OTHER THAN FOR THREADING STUFF
+     */
     public void receive(InetAddress fromIP) { receive(fromIP,null, null); }
     public void receive(InetAddress fromIP, Callback threadResponse, Callback failResponse) {
         ConnectionThread thread = new ReceiveThread(fromIP, threadResponse, failResponse);
@@ -99,6 +133,9 @@ public abstract class UDPConnection extends Thread {
         thread.pass(header);
     }
 
+    /**
+     * Same as receive() except awaitReceive() will wait until the thread is completed before letting the code continue
+     */
     public void awaitReceive(InetAddress fromIP) { awaitReceive(fromIP,null, null); }
     public void awaitReceive(InetAddress fromIP, Callback threadResponse, Callback failResponse) {
        receive(fromIP, threadResponse, failResponse);
@@ -120,13 +157,25 @@ public abstract class UDPConnection extends Thread {
         }
     }
 
+    /**
+     * This method will execute when UDPConnection doesn't find an existing IP in the threads
+     * We need this since Client and Server handles new IPs differently; Client throws and ERROR and Server creates a new thread to respond
+     * @param address - IP address of the new sender
+     * @param protocol - Protocol data that was sent in the packet
+     */
     public abstract void keyNotFound(InetAddress address, Protocol protocol);
 }
 
+/**
+ * UDP thread that specializes in sending packets to a target IP
+ */
 class SendThread extends ConnectionThread {
     InetAddress toIP;
     Protocol[] outbound;
 
+    /**
+     * SendThreads can be instantiated without callbacks
+     */
     public SendThread(InetAddress packet, Protocol[] outbound) { this(packet, outbound, null, null); }
     public SendThread(InetAddress packet, Protocol[] outbound, Callback threadResponse, Callback failedResponse) {
         super(packet, threadResponse, failedResponse);
@@ -166,6 +215,9 @@ class SendThread extends ConnectionThread {
     }
 }
 
+/**
+ * UDP thread that specializes in receiving UDP packets
+ */
 class ReceiveThread extends ConnectionThread {
     protected Protocol[] fragments;
 
@@ -218,6 +270,10 @@ class ReceiveThread extends ConnectionThread {
     }
 }
 
+/**
+ * Base class that all UDP threads extend from
+ * Has the basic functionalities
+ */
 abstract class ConnectionThread extends Thread {
     protected static final Object threadMonitor = new Object();
     protected InetAddress address;

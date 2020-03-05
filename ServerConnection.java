@@ -3,10 +3,7 @@ import java.util.HashMap;
 
 /**
  * Client-side script that handles client-server communication
- * All communication uses UDP
  */
-
-// TODO: Everything
 public class ServerConnection extends Connection {
     static InetAddress serverAddress;
     static Directory directory;
