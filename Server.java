@@ -31,6 +31,9 @@ public class Server extends Connection {
                     break;
                 case EXIT:
                     break;
+                default:
+                    UDP.send(address, Protocol.create(Protocol.Status.ERROR));
+                    break;
             }
         }
     };

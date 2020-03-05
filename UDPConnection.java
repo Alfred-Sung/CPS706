@@ -139,7 +139,6 @@ class SendThread extends ConnectionThread {
                 // TODO: Fix
                 //Connection.socket.setSoTimeout(Connection.TIMEOUT);
                 lock();
-                isLocked = true;
 
                 switch (recent.status) {
                     case OK:
@@ -173,11 +172,9 @@ class ReceiveThread extends ConnectionThread {
     @Override
     public void run() {
         lock();
-        isLocked = true;
 
         for (int i = 0; i < fragments.length; i++) {
             lock();
-            isLocked = true;
 
             fragments[i] = recent;
             acknowledge();
@@ -196,7 +193,7 @@ class ReceiveThread extends ConnectionThread {
             Protocol response = Protocol.create(Protocol.Status.OK)[0];
             DatagramPacket packet = new DatagramPacket(response.getBytes(), Protocol.LENGTH, address, Connection.PORT);
             Connection.socket.send(packet);
-            Connection.socket.setSoTimeout(Connection.TIMEOUT);
+            //Connection.socket.setSoTimeout(Connection.TIMEOUT);
         } catch (Exception e) {
 
         }
@@ -241,8 +238,7 @@ abstract class ConnectionThread extends Thread {
             recent = protocol;
             Connection.log(address, protocol);
 
-            isLocked = false;
-            threadMonitor.notify();
+            unlock();
         }
     }
 
@@ -260,6 +256,7 @@ abstract class ConnectionThread extends Thread {
     protected synchronized void lock() {
         try {
             while (isLocked) { wait(); }
+            isLocked = true;
         } catch (Exception e) {
 
         }
