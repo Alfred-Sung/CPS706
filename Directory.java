@@ -28,6 +28,11 @@ public class Directory {
         usernames.put(protocol.nickName, address);
     }
 
+    public void remove(InetAddress address, Protocol protocol) {
+        list.remove(address);
+        usernames.remove(protocol.nickName);
+    }
+
     public void parse(String input) {
         list = new HashMap<>();
         usernames = new HashMap<>();

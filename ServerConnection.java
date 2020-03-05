@@ -3,13 +3,9 @@ import java.util.HashMap;
 
 /**
  * Client-side script that handles client-server communication
- * All communication uses UDP
  */
-
-// TODO: Everything
 public class ServerConnection extends Connection {
     static InetAddress serverAddress;
-    static Directory directory;
     UDPConnection UDP;
 
     public ServerConnection() {
@@ -44,13 +40,13 @@ public class ServerConnection extends Connection {
         return (serverAddress != null);
     }
 
-    public String getDirectory() {
+    public void printDirectory() {
         try {
             UDP.awaitSend(serverAddress, Protocol.Status.QUERY);
             UDP.awaitReceive(serverAddress,
                     new Callback() {
                         @Override
-                        public void invoke(InetAddress address, Protocol protocol, String data) { }
+                        public void invoke(InetAddress address, Protocol protocol, String data) { System.out.println(data); }
                     },
                     new Callback() {
                         @Override
@@ -59,15 +55,23 @@ public class ServerConnection extends Connection {
             );
         } catch (Exception e) {
             System.out.println(e + " at " + e.getStackTrace()[0]);
-            return "";
         }
-
-        return "Success";
+        System.out.println("Type /join <username or ip> to join a chat");
     }
 
     public void joinChat(String peerIP) {
         try {
-            UDP.send(serverAddress, Protocol.create(Protocol.Status.JOIN, peerIP));
+            UDP.awaitSend(serverAddress, Protocol.create(Protocol.Status.JOIN, peerIP));
+            UDP.awaitReceive(serverAddress,
+                    new Callback() {
+                        @Override
+                        public void invoke(InetAddress address, Protocol protocol, String data) { }
+                    },
+                    new Callback() {
+                        @Override
+                        public void invoke(InetAddress address, Protocol protocol, String data) { System.out.println(data); }
+                    }
+            );
         } catch (Exception e) {
             System.out.println(e + " at " + e.getStackTrace()[0]);
         }

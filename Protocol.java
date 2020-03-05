@@ -2,7 +2,10 @@ import java.nio.ByteBuffer;
 import java.util.*;
 
 /**
- * HTTP-like protocol that is attached to every packet sent between client-server
+ * HTTP-like protocol
+ * Handles splitting a message into 80 byte instances to be put in a UDP packet
+ *
+ * Leading packets' data field will always contain the number of subsequent packets
  */
 // TODO: Implement fragmented packets
 public class Protocol {
@@ -16,10 +19,17 @@ public class Protocol {
 
     String data; //40 bytes
 
+    /**
+     * Methods to create Protocol packets
+     * Automatically handles splitting
+     */
     public static Protocol[] create(Status status) { return new Protocol[] { new Protocol(status, 0, "0") }; }
     public static Protocol[] create(byte[] data) { return new Protocol[] { new Protocol(data) }; }
     public static Protocol[] create(Status status, String data) { return split(status, data); }
 
+    /**
+     * Splits and creates multiple protocol packets based on an input message
+     */
     private static Protocol[] split(Status status, String data) {
         // Split data string into chunks of length DATALENGTH
         List<String> dataFragments = new LinkedList<>();
@@ -37,6 +47,9 @@ public class Protocol {
         return fragments.toArray(new Protocol[0]);
     }
 
+    /**
+     * Reconstructs a message from multiple Protocol packets
+     */
     public static String constructData(Protocol[] fragments) {
         StringBuilder result = new StringBuilder();
         for (Protocol frag : fragments) {
