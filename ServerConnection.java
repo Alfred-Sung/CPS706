@@ -62,7 +62,7 @@ public class ServerConnection extends Connection {
             return "";
         }
 
-        return "";
+        return "Success";
     }
 
     public void joinChat(String peerIP) {
