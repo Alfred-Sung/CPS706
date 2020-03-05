@@ -30,13 +30,15 @@ public class Server extends Connection {
                 case JOIN:
                     break;
                 case EXIT:
+                    Connection.log("Removed user from directory");
+                    directory.remove(address, protocol);
                     break;
             }
         }
     };
 
     public static void main(String args[]) {
-        //VERBOSE = true;
+        VERBOSE = true;
         nickName = "Server";
 
         UDP = new UDPConnection() {

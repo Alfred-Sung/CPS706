@@ -12,8 +12,8 @@ import java.lang.reflect.*;
 // TODO: Create ClientConnection once server connection is established
 // TODO: Finish chat command methods
 public class Client {
-    static ClientConnection client;
-    static ServerConnection server;
+    public static ClientConnection client;
+    public static ServerConnection server;
 
     public static void main(String[] args) throws Exception {
         server = new ServerConnection();
@@ -37,13 +37,14 @@ public class Client {
             validServer = server.connect(serverIP);
         } while (!validServer);
 
-        System.out.println(server.getDirectory());
+        server.printDirectory();
 
         while (true) {
             String query;
             query = input.nextLine();
 
             if (query.charAt(0) == ChatCommands.COMMANDCHAR) {
+                query = query.toLowerCase();
                 String[] command = query.substring(1, query.length()).split(" ");
 
                 Method method = ChatCommands.queryChatCommand(command[0]);

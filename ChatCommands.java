@@ -53,17 +53,16 @@ public class ChatCommands {
         return result;
     }
 
-    // TODO: Must accept nickname or IP address
-    @Command(parameters = {"name"}, description = "")
-    static void join(String name) { System.out.println("User joined " + name + "'s chat!"); }
+    @Command(parameters = {"username or ip"}, description = "Sends a request to join a user's chatroom")
+    static void join(String name) { Client.server.joinChat(name); }
 
-    @Command(parameters = {}, description = "")
-    static void query() { /* System.out.println(ServerConnection.getDirectory());*/ }
+    @Command(parameters = {}, description = "Prints the directory of users currently online")
+    static void query() { Client.server.printDirectory(); }
 
-    @Command(parameters = {}, description = "")
+    @Command(parameters = {}, description = "Accepts an incoming request to join your chatroom")
     static void accept() { System.out.println("Thing"); }
 
-    @Command(parameters = {}, description = "")
+    @Command(parameters = {}, description = "Declines an incoming request to join your chatroom")
     static void decline() { System.out.println("Thing"); }
 
     @Command(parameters = {}, description = "")
@@ -77,5 +76,22 @@ public class ChatCommands {
     @Command(parameters = {}, description = "Lists all available chat commands")
     static void help() {
         for (Method m : methods) { System.out.println(getMethodDescription(m)); }
+    }
+
+    @Command(parameters = {"state"}, description = "For developer purposes")
+    static void verbose(String state) {
+        switch(state) {
+            case "true":
+            case "on":
+                Connection.VERBOSE = true;
+
+                break;
+            case "false":
+            case "off":
+                Connection.VERBOSE = false;
+                break;
+        }
+
+        System.out.println("Verbose is " + (Connection.VERBOSE ? "on" : "off"));
     }
 }

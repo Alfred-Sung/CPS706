@@ -237,9 +237,12 @@ class ReceiveThread extends ConnectionThread {
             acknowledge();
         }
 
-        //if (failedResponse != null) { failedResponse.invoke(address, recent, recent.data); }
+        if (recent.status == Protocol.Status.ERROR) {
+            if (failedResponse != null) { failedResponse.invoke(address, recent, recent.data); }
+        } else {
+            if (threadResponse != null) { threadResponse.invoke(address, recent, Protocol.constructData(fragments)); }
+        }
 
-        if (threadResponse != null) { threadResponse.invoke(address, recent, Protocol.constructData(fragments)); }
         UDPConnection.closeThread(address);
     }
 

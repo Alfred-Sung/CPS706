@@ -10,7 +10,7 @@ public abstract class Connection {
     public static String hostName;
     public static String nickName;
 
-    public static boolean VERBOSE = true;
+    public static boolean VERBOSE = false;
 
     protected static final int PORT = 1000;
     protected static final int TIMEOUT = 100;
