@@ -92,10 +92,12 @@ public abstract class UDPConnection extends Thread {
      * Sends UDP packets to a specified IP
      * NOTE: NOT RECOMMENDED TO USE OTHER THAN FOR THREADING STUFF
      */
-    public void send(InetAddress toIP, Protocol[] fragments) { send(toIP, fragments, null, null); }
+    public void send(InetAddress toIP, Protocol.Status status, String message) { send(toIP, Protocol.create(status, message), null, null); }
+    public void send(InetAddress toIP, Protocol.Status status, String message, Callback threadResponse, Callback failResponse) { send(toIP, Protocol.create(status, message), threadResponse, failResponse); }
     public void send(InetAddress toIP, Protocol.Status status) { send(toIP, Protocol.create(status), null, null); }
     public void send(InetAddress toIP, Protocol.Status status, Callback threadResponse, Callback failResponse) { send(toIP, Protocol.create(status), threadResponse, failResponse); }
-    public void send(InetAddress toIP, Protocol[] fragments, Callback threadResponse, Callback failResponse) {
+
+    private void send(InetAddress toIP, Protocol[] fragments, Callback threadResponse, Callback failResponse) {
         ConnectionThread thread = new SendThread(toIP, fragments, threadResponse, failResponse);
         UDPConnection.spawnThread(toIP, thread);
     }
@@ -103,10 +105,13 @@ public abstract class UDPConnection extends Thread {
     /**
      * Same as send() except awaitSend() will wait until the thread is completed before letting the code continue
      */
-    public void awaitSend(InetAddress toIP, Protocol[] fragments) { awaitSend(toIP, fragments, null, null); }
+    public void awaitSend(InetAddress toIP, Protocol.Status status, String message) { awaitSend(toIP, Protocol.create(status, message), null, null); }
+    public void awaitSend(InetAddress toIP, Protocol.Status status, String message, Callback threadResponse, Callback failResponse) { awaitSend(toIP, Protocol.create(status, message), threadResponse, failResponse); }
     public void awaitSend(InetAddress toIP, Protocol.Status status) { awaitSend(toIP, Protocol.create(status), null, null); }
     public void awaitSend(InetAddress toIP, Protocol.Status status, Callback threadResponse, Callback failResponse) { awaitSend(toIP, Protocol.create(status), threadResponse, failResponse); }
-    public void awaitSend(InetAddress toIP, Protocol[] fragments, Callback threadResponse, Callback failResponse) {
+
+
+    private void awaitSend(InetAddress toIP, Protocol[] fragments, Callback threadResponse, Callback failResponse) {
         send(toIP, fragments, threadResponse, failResponse);
 
         try {
