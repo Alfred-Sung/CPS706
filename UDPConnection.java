@@ -215,8 +215,8 @@ class SendThread extends ConnectionThread {
             }
         }
 
-        if (threadResponse != null) { threadResponse.invoke(address, recent, recent.data); }
         UDPConnection.closeThread(address);
+        if (threadResponse != null) { threadResponse.invoke(address, recent, recent.data); }
     }
 }
 
@@ -242,13 +242,13 @@ class ReceiveThread extends ConnectionThread {
             acknowledge();
         }
 
+        UDPConnection.closeThread(address);
+
         if (recent.status == Protocol.Status.ERROR) {
             if (failedResponse != null) { failedResponse.invoke(address, recent, recent.data); }
         } else {
             if (threadResponse != null) { threadResponse.invoke(address, recent, Protocol.constructData(fragments)); }
         }
-
-        UDPConnection.closeThread(address);
     }
 
     // TODO: Handle packet resending

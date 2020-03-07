@@ -14,6 +14,11 @@ public class ServerConnection extends Connection {
         public void invoke(InetAddress address, Protocol protocol, String data) {
             switch (protocol.status) {
                 case JOIN:
+                    Profile profile = Profile.parse(data);
+                    Client.requestedClient = profile.IP;
+
+                    System.out.println(profile.nickname + " wants to chat");
+                    System.out.println("Type /accept or /decline");
                     break;
                 default:
                     UDP.send(address, Protocol.Status.ERROR);

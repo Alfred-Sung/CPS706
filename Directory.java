@@ -52,14 +52,9 @@ public class Directory {
         String[] profiles = input.split("\n");
         for (String s : profiles) {
             try {
-                String[] param = s.split("\t");
-                String username = param[0];
-                InetAddress IP = InetAddress.getByName(param[1]);
-                String chatName = param[2];
-                int popularity = Integer.parseInt(param[3]);
-
-                list.put(IP, new Profile(username, IP, chatName, popularity));
-                usernames.put(username, IP);
+                Profile profile = Profile.parse(s);
+                list.put(profile.IP, profile);
+                usernames.put(profile.nickname, profile.IP);
             } catch (Exception e) {
                 continue;
             }

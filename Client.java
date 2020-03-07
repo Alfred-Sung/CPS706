@@ -15,6 +15,8 @@ public class Client {
     public static ClientConnection client;
     public static ServerConnection server;
 
+    public static InetAddress requestedClient;
+
     public static void main(String[] args) throws Exception {
         server = new ServerConnection();
         Scanner input = new Scanner(System.in);
