@@ -6,12 +6,45 @@ import java.util.HashMap;
  */
 public class ServerConnection extends Connection {
     static InetAddress serverAddress;
-    UDPConnection UDP;
+    static UDPConnection UDP;
+
+    private static Profile TCPServerProfile;
+    static Callback response = new Callback() {
+        @Override
+        public void invoke(InetAddress address, Protocol protocol, String data) {
+            switch (protocol.status) {
+                case JOIN:
+                    Profile profile = Profile.parse(data);
+                    Client.requestedClient = profile.IP;
+
+                    System.out.println(profile.nickname + " wants to chat");
+                    System.out.println("Type /accept or /decline");
+                    break;
+                default:
+                    UDP.send(address, Protocol.Status.ERROR);
+                    break;
+            }
+        }
+    };
 
     public ServerConnection() {
         UDP = new UDPConnection() {
             @Override
-            public void keyNotFound(InetAddress address, Protocol protocol) { send(address, Protocol.create(Protocol.Status.ERROR)); }
+            public void keyNotFound(InetAddress address, Protocol protocol) {
+                if (!address.equals(serverAddress)) {
+                    send(address, Protocol.Status.ERROR);
+                } else {
+                    receive(address, protocol,
+                            response,
+                            new Callback() {
+                                @Override
+                                public void invoke(InetAddress address, Protocol protocol, String data) {
+                                    send(address, Protocol.Status.ERROR);
+                                }
+                            }
+                    );
+                }
+            }
         };
         UDP.start();
     }
@@ -61,16 +94,33 @@ public class ServerConnection extends Connection {
 
     public void joinChat(String peerIP) {
         try {
-            UDP.awaitSend(serverAddress, Protocol.create(Protocol.Status.JOIN, peerIP));
+            UDP.awaitSend(serverAddress, Protocol.Status.JOIN, peerIP);
             UDP.awaitReceive(serverAddress,
                     new Callback() {
                         @Override
-                        public void invoke(InetAddress address, Protocol protocol, String data) { }
+                        public void invoke(InetAddress address, Protocol protocol, String data) {
+                            try {
+                                TCPServerProfile = Profile.parse(data);
+                            } catch (Exception e) {}
+                        }
                     },
+                    null
+            );
+            System.out.println("Waiting for " + TCPServerProfile.nickname + " to accept");
+            UDP.awaitReceive(TCPServerProfile.IP,
                     new Callback() {
                         @Override
-                        public void invoke(InetAddress address, Protocol protocol, String data) { System.out.println(data); }
-                    }
+                        public void invoke(InetAddress address, Protocol protocol, String data) {
+                            switch(protocol.status) {
+                                // TODO: Pass IP to TCPConnection
+                                case ACCEPT:
+                                    break;
+                                case DECLINE:
+                                    break;
+                            }
+                        }
+                    },
+                    null
             );
         } catch (Exception e) {
             System.out.println(e + " at " + e.getStackTrace()[0]);

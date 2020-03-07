@@ -10,11 +10,23 @@ public class Directory {
     HashMap<InetAddress, Profile> list = new HashMap<>();
     HashMap<String, InetAddress> usernames = new HashMap<>();
 
-    public InetAddress get(String key) {
+    public InetAddress getAddress(String key) {
         try {
             InetAddress address = InetAddress.getByName(key);
             if (list.containsKey(address)) { return address; }
             if (usernames.containsKey(key)) { return usernames.get(key); }
+        } catch (Exception e) {
+            return null;
+        }
+
+        return null;
+    }
+
+    public Profile getProfile(String key) {
+        try {
+            InetAddress address = InetAddress.getByName(key);
+            if (list.containsKey(address)) { return list.get(address); }
+            if (usernames.containsKey(key)) { return list.get(usernames.get(key)); }
         } catch (Exception e) {
             return null;
         }
@@ -40,14 +52,9 @@ public class Directory {
         String[] profiles = input.split("\n");
         for (String s : profiles) {
             try {
-                String[] param = s.split("\t");
-                String username = param[0];
-                InetAddress IP = InetAddress.getByName(param[1]);
-                String chatName = param[2];
-                int popularity = Integer.parseInt(param[3]);
-
-                list.put(IP, new Profile(username, IP, chatName, popularity));
-                usernames.put(username, IP);
+                Profile profile = Profile.parse(s);
+                list.put(profile.IP, profile);
+                usernames.put(profile.nickname, profile.IP);
             } catch (Exception e) {
                 continue;
             }
@@ -94,5 +101,20 @@ class Profile {
         IP + "\t\t" +
         (chatName.equals("") ? "None" : chatName) + "\t\t\t\t" +
         (Server.totalUsers == 0 ? 0 : ((float)activeUsers / Server.totalUsers));
+    }
+
+    public static Profile parse (String input) {
+        try {
+            String[] param = input.split("\t");
+            String username = param[0];
+            InetAddress IP = InetAddress.getByName(param[1]);
+            String chatName = param[2];
+            int popularity = Integer.parseInt(param[3]);
+
+            return new Profile(username, IP, chatName, popularity);
+        } catch (Exception e) {
+
+        }
+        return null;
     }
 }

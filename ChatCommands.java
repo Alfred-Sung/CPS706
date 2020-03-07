@@ -59,11 +59,23 @@ public class ChatCommands {
     @Command(parameters = {}, description = "Prints the directory of users currently online")
     static void query() { Client.server.printDirectory(); }
 
-    @Command(parameters = {}, description = "Accepts an incoming request to join your chatroom")
-    static void accept() { System.out.println("Thing"); }
+    @Command(parameters = {}, description = "Accepts an incoming invitaion to join your chatroom")
+    static void accept() {
+        if (Client.requestedClient != null) {
+            Client.server.UDP.send(Client.requestedClient, Protocol.Status.ACCEPT);
+        } else {
+            System.out.println("No invitation to accept");
+        }
+    }
 
-    @Command(parameters = {}, description = "Declines an incoming request to join your chatroom")
-    static void decline() { System.out.println("Thing"); }
+    @Command(parameters = {}, description = "Declines an incoming invitation to join your chatroom")
+    static void decline() {
+        if (Client.requestedClient != null) {
+        Client.server.UDP.send(Client.requestedClient, Protocol.Status.DECLINE);
+        } else {
+            System.out.println("No invitation to decline");
+        }
+    }
 
     @Command(parameters = {}, description = "")
     static void exit() { System.out.println("User exited chat!"); }

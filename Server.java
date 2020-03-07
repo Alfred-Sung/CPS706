@@ -25,9 +25,19 @@ public class Server extends Connection {
                 case OFFLINE:
                     break;
                 case QUERY:
-                    UDP.send(address, Protocol.create(Protocol.Status.OK, directory.print()));
+                    UDP.send(address, Protocol.Status.OK, directory.print());
                     break;
                 case JOIN:
+                    Profile client = directory.getProfile(address.toString());
+                    Profile other = directory.getProfile(data);
+
+                    if (other == null) {
+                        UDP.send(address, Protocol.Status.ERROR, "No such user exists");
+                    } else {
+                        UDP.send(address, Protocol.Status.OK, other.getRecord());
+                    }
+
+                    UDP.send(other.IP, Protocol.Status.JOIN, client.getRecord());
                     break;
                 case EXIT:
                     Connection.log("Removed user from directory");
@@ -52,7 +62,7 @@ public class Server extends Connection {
                         new Callback() {
                             @Override
                             public void invoke(InetAddress address, Protocol protocol, String data) {
-                                send(address, Protocol.create(Protocol.Status.ERROR));
+                                send(address, Protocol.Status.ERROR);
                             }
                         }
                 );
