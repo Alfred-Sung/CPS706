@@ -1,5 +1,6 @@
 import java.net.DatagramSocket;
 import java.net.InetAddress;
+import java.net.ServerSocket;
 
 /**
  * Base class that all things that need to communicate extends from
@@ -15,13 +16,14 @@ public abstract class Connection {
     protected static final int PORT = 1000;
     protected static final int TIMEOUT = 100;
     protected static final int MAXREPEAT = 10;
-    protected static DatagramSocket socket;
+    protected static DatagramSocket UDPSocket;
+    protected static ServerSocket TCPSocket;
 
     static {
         try {
             localMachine = InetAddress.getLocalHost();
             hostName = localMachine.getHostName();
-            socket = new DatagramSocket(PORT);
+            TCPSocket = new ServerSocket(PORT);
             //socket.setSoTimeout(TIMEOUT);
 
             System.out.println(localMachine.getHostAddress() + " : " + hostName);
@@ -35,6 +37,8 @@ public abstract class Connection {
      * Debug methods that print out a formatted version
      * Also checks if VERBOSE is on
      */
+
+    // TODO: Replace System.out.println() with something faster
     public static void log(String message) {
         if (!VERBOSE) { return; }
         System.out.println(message);
