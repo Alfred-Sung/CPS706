@@ -23,7 +23,6 @@ public class Client {
         System.out.println("Welcome to Chat");
 
         String serverIP = "";
-        boolean validServer = false;
         do {
             do {
                 System.out.print("Enter server IP: ");
@@ -34,9 +33,7 @@ public class Client {
                 System.out.print("Enter nickname: ");
                 Connection.nickName = input.nextLine();
             } while (Connection.nickName.equals(""));
-
-            validServer = server.connect(serverIP);
-        } while (!validServer);
+        } while (!server.connect(serverIP));
 
         server.printDirectory();
 
@@ -45,7 +42,7 @@ public class Client {
             query = input.nextLine();
 
             if (query.charAt(0) == ChatCommands.COMMANDCHAR) {
-                query = query.toLowerCase();
+                //query = query.toLowerCase();
                 String[] command = query.substring(1, query.length()).split(" ");
 
                 Method method = ChatCommands.queryChatCommand(command[0]);

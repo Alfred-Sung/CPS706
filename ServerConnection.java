@@ -28,6 +28,8 @@ public class ServerConnection extends Connection {
     };
 
     public ServerConnection() {
+        VERBOSE = true;
+
         UDP = new UDPConnection() {
             @Override
             public void keyNotFound(InetAddress address, Protocol protocol) {
@@ -69,6 +71,7 @@ public class ServerConnection extends Connection {
             );
 
         } catch (Exception e) {
+            System.out.println(e);
             return false;
         }
 
@@ -91,7 +94,7 @@ public class ServerConnection extends Connection {
         } catch (Exception e) {
             System.out.println(e + " at " + e.getStackTrace()[0]);
         }
-        System.out.println("Type /join <username or ip> to join a chat");
+        System.out.println("Type /join <user> to join a chat");
     }
 
     public void joinChat(String peerIP) {
@@ -103,23 +106,24 @@ public class ServerConnection extends Connection {
                         public void invoke(InetAddress address, Protocol protocol, String data) {
                             try {
                                 TCPServerProfile = Profile.parse(data);
+                                System.out.println("Waiting for " + TCPServerProfile.nickname + " to accept");
                             } catch (Exception e) {}
-                        }
-                    },
-                    null
-            );
-            System.out.println("Waiting for " + TCPServerProfile.nickname + " to accept");
-            UDP.awaitReceive(TCPServerProfile.IP,
-                    new UDPCallback() {
-                        @Override
-                        public void invoke(InetAddress address, Protocol protocol, String data) {
-                            switch(protocol.status) {
-                                // TODO: Pass IP to TCPConnection
-                                case ACCEPT:
-                                    break;
-                                case DECLINE:
-                                    break;
-                            }
+
+                            UDP.awaitReceive(TCPServerProfile.IP,
+                                    new UDPCallback() {
+                                        @Override
+                                        public void invoke(InetAddress address, Protocol protocol, String data) {
+                                            switch(protocol.status) {
+                                                // TODO: Pass IP to TCPConnection
+                                                case ACCEPT:
+                                                    break;
+                                                case DECLINE:
+                                                    break;
+                                            }
+                                        }
+                                    },
+                                    null
+                            );
                         }
                     },
                     null

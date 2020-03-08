@@ -53,7 +53,7 @@ public class ChatCommands {
         return result;
     }
 
-    @Command(parameters = {"username or ip"}, description = "Sends a request to join a user's chatroom")
+    @Command(parameters = {"user"}, description = "Sends a request to join a user's chatroom")
     static void join(String name) { Client.server.joinChat(name); }
 
     @Command(parameters = {}, description = "Prints the directory of users currently online")

@@ -69,24 +69,25 @@ public abstract class UDPConnection extends Thread {
      */
     @Override
     public void run() {
-        //UDPSocket = new DatagramSocket(Connection.PORT);
+        try {
+            socket = new DatagramSocket(Connection.PORT);
 
-        while (true) {
-            try {
-                DatagramPacket packet = new DatagramPacket(new byte[Protocol.LENGTH], Protocol.LENGTH);
-                socket.receive(packet);
+            while (true) {
 
-                InetAddress address = packet.getAddress();
-                Protocol protocol = Protocol.create(packet.getData())[0];
+                    DatagramPacket packet = new DatagramPacket(new byte[Protocol.LENGTH], Protocol.LENGTH);
+                    socket.receive(packet);
 
-                if (threads.containsKey(address)) {
-                    threads.get(address).peek().pass(protocol);
-                } else {
-                    keyNotFound(address, protocol);
-                }
-            } catch (Exception e) {
-                Connection.log(e + " at " + e.getStackTrace()[0]);
+                    InetAddress address = packet.getAddress();
+                    Protocol protocol = Protocol.create(packet.getData())[0];
+
+                    if (threads.containsKey(address)) {
+                        threads.get(address).peek().pass(protocol);
+                    } else {
+                        keyNotFound(address, protocol);
+                    }
             }
+        } catch (Exception e) {
+            Connection.log(e + " at " + e.getStackTrace()[0]);
         }
     }
 
@@ -216,9 +217,9 @@ class SendThread extends UDPThread {
             }
         }
 
-        // Close thread before callback; prevents thread locking
-        UDPConnection.closeThread(address);
+        // TODO: Prevent thread locking
         if (threadResponse != null) { threadResponse.invoke(address, recent, recent.data); }
+        UDPConnection.closeThread(address);
     }
 }
 
@@ -226,7 +227,7 @@ class SendThread extends UDPThread {
  * UDP thread that specializes in receiving UDP packets
  */
 class ReceiveThread extends UDPThread {
-    protected Protocol[] fragments;
+    protected Protocol[] fragments = new Protocol[0];
 
     public ReceiveThread(InetAddress fromIP) { this(fromIP, null, null); }
     public ReceiveThread(InetAddress fromIP, UDPCallback threadResponse, UDPCallback failedResponse) {
@@ -237,6 +238,7 @@ class ReceiveThread extends UDPThread {
     public void run() {
         lock();
 
+        //System.out.println(fragments.length);
         for (int i = 0; i < fragments.length; i++) {
             lock();
 
@@ -244,13 +246,13 @@ class ReceiveThread extends UDPThread {
             acknowledge();
         }
 
-        // Close thread before callback; prevents thread locking
-        UDPConnection.closeThread(address);
+        // TODO: Prevent thread locking
         if (recent.status == Protocol.Status.ERROR) {
             if (failedResponse != null) { failedResponse.invoke(address, recent, recent.data); }
         } else {
             if (threadResponse != null) { threadResponse.invoke(address, recent, Protocol.constructData(fragments)); }
         }
+        UDPConnection.closeThread(address);
     }
 
     // TODO: Handle packet resending
