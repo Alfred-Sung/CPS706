@@ -7,7 +7,6 @@ import java.util.*;
  *
  * Leading packets' data field will always contain the number of subsequent packets
  */
-// TODO: Implement fragmented packets
 public class Protocol {
     public static final int LENGTH = 80;
     public static final int DATALENGTH = 40;

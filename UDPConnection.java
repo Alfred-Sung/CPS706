@@ -12,6 +12,8 @@ import java.util.concurrent.TimeoutException;
  * Since it's hard to get threads to return anything and when they'll finish, I opted for the callback method
  * This also allows us to "chain" together threads quite easily
  */
+
+// TODO: Implement packet timeout/resending
 interface UDPCallback { void invoke(InetAddress address, Protocol protocol, String data); }
 public abstract class UDPConnection extends Thread {
     public static final Object UDPMonitor = new Object();
@@ -195,7 +197,6 @@ class SendThread extends UDPThread {
                 UDPConnection.socket.send(packet);
                 Connection.log(outbound[i]);
 
-                // TODO: Fix
                 //Connection.socket.setSoTimeout(Connection.TIMEOUT);
                 lock();
 

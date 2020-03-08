@@ -6,15 +6,16 @@ import java.net.*;
  * ClientServer is created by ClientConnection when user accepts to chat with peers
  * Handles forwarding messages from peers to all users in a chat room
  */
+
 // TODO: Everything
 public class ClientConnection extends Connection {
     private final TCPConnection TCP;
 
-    public ClientConnection(InetAddress IP) {
+    public ClientConnection(InetAddress IP) throws Exception {
         TCP = new P2PClient(IP);
     }
 
-    public ClientConnection() {
+    public ClientConnection() throws Exception {
         TCP = new P2PServer();
     }
 

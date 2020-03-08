@@ -8,7 +8,6 @@ import java.lang.reflect.*;
  * ie. IO handling, chat commands, etc.
  */
 // TODO: Everything
-// TODO: Client-server interactions
 // TODO: Create ClientConnection once server connection is established
 // TODO: Finish chat command methods
 public class Client {

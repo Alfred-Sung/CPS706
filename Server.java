@@ -7,14 +7,13 @@ import java.time.LocalDateTime;
  * Tracks online users and chatrooms
  * Spawns individual threads for each user request and tracks them in a hashmap
  */
-// TODO: Respond to incoming requests
-// TODO: Handle fragmented packets
+// TODO: Finish clientResponse switch cases
 public class Server extends Connection {
     public static UDPConnection UDP;
     public static Directory directory = new Directory();
     static int totalUsers;
 
-    static Callback clientResponse = new Callback() {
+    static UDPCallback clientResponse = new UDPCallback() {
         @Override
         public void invoke(InetAddress address, Protocol protocol, String data) {
             switch (protocol.status) {
@@ -59,7 +58,7 @@ public class Server extends Connection {
             public void keyNotFound(InetAddress address, Protocol protocol) {
                 receive(address, protocol,
                         clientResponse,
-                        new Callback() {
+                        new UDPCallback() {
                             @Override
                             public void invoke(InetAddress address, Protocol protocol, String data) {
                                 send(address, Protocol.Status.ERROR);
