@@ -6,10 +6,10 @@ import java.util.HashMap;
  */
 public class ServerConnection extends Connection {
     static InetAddress serverAddress;
-    static UDPConnection UDP;
+    private static UDPConnection UDP;
 
     private static Profile TCPServerProfile;
-    static Callback response = new Callback() {
+    static UDPCallback response = new UDPCallback() {
         @Override
         public void invoke(InetAddress address, Protocol protocol, String data) {
             switch (protocol.status) {
@@ -36,7 +36,7 @@ public class ServerConnection extends Connection {
                 } else {
                     receive(address, protocol,
                             response,
-                            new Callback() {
+                            new UDPCallback() {
                                 @Override
                                 public void invoke(InetAddress address, Protocol protocol, String data) {
                                     send(address, Protocol.Status.ERROR);
@@ -49,18 +49,20 @@ public class ServerConnection extends Connection {
         UDP.start();
     }
 
+    public void send(InetAddress address, Protocol.Status status) { UDP.awaitSend(address, status); }
+
     public boolean connect(String serverIP) {
         try {
             InetAddress temp = InetAddress.getByName(serverIP);
             UDP.awaitSend(temp, Protocol.Status.ONLINE,
-                    new Callback() {
+                    new UDPCallback() {
                         @Override
                         public void invoke(InetAddress address, Protocol protocol, String data) {
                             System.out.println("Connected!");
                             ServerConnection.serverAddress = temp;
                         }
                     },
-                    new Callback() {
+                    new UDPCallback() {
                         @Override
                         public void invoke(InetAddress address, Protocol protocol, String data) { System.out.println("Invalid server IP"); }
                     }
@@ -77,11 +79,11 @@ public class ServerConnection extends Connection {
         try {
             UDP.awaitSend(serverAddress, Protocol.Status.QUERY);
             UDP.awaitReceive(serverAddress,
-                    new Callback() {
+                    new UDPCallback() {
                         @Override
                         public void invoke(InetAddress address, Protocol protocol, String data) { System.out.println(data); }
                     },
-                    new Callback() {
+                    new UDPCallback() {
                         @Override
                         public void invoke(InetAddress address, Protocol protocol, String data) { System.out.println("Error"); }
                     }
@@ -96,7 +98,7 @@ public class ServerConnection extends Connection {
         try {
             UDP.awaitSend(serverAddress, Protocol.Status.JOIN, peerIP);
             UDP.awaitReceive(serverAddress,
-                    new Callback() {
+                    new UDPCallback() {
                         @Override
                         public void invoke(InetAddress address, Protocol protocol, String data) {
                             try {
@@ -108,7 +110,7 @@ public class ServerConnection extends Connection {
             );
             System.out.println("Waiting for " + TCPServerProfile.nickname + " to accept");
             UDP.awaitReceive(TCPServerProfile.IP,
-                    new Callback() {
+                    new UDPCallback() {
                         @Override
                         public void invoke(InetAddress address, Protocol protocol, String data) {
                             switch(protocol.status) {

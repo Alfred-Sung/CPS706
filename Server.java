@@ -44,7 +44,7 @@ public class Server extends Connection {
                     directory.remove(address, protocol);
                     break;
                 default:
-                    UDP.send(address, Protocol.create(Protocol.Status.ERROR));
+                    UDP.send(address, Protocol.Status.ERROR);
                     break;
             }
         }
