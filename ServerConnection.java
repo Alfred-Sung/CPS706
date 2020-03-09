@@ -48,7 +48,6 @@ public class ServerConnection extends Connection {
                 }
             }
         };
-        UDP.start();
     }
 
     public void send(InetAddress address, Protocol.Status status) { UDP.awaitSend(address, status); }

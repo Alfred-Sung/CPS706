@@ -78,7 +78,7 @@ public class ChatCommands {
     }
 
     @Command(parameters = {}, description = "")
-    static void exit() { System.out.println("User exited chat!"); }
+    static void exit() { Client.client.exit(); }
 
     @Command(parameters = {}, description = "")
     static void logoff() {

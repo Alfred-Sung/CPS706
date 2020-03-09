@@ -14,6 +14,6 @@ public class ClientConnection extends Connection {
     public ClientConnection(InetAddress IP) throws Exception { TCP = new P2PClient(IP); }
     public ClientConnection() throws Exception { TCP = new P2PServer(); }
 
-    public void send(String message) { TCP.send(message); }
-    public void exit() {}
+    public void send(String message) { TCP.send(Connection.nickName + "> " + message); }
+    public void exit() { TCP.exit(); }
 }

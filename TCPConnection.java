@@ -9,13 +9,17 @@ class P2PClient extends TCPConnection {
     public P2PClient(InetAddress serverIP) throws Exception {
         super();
         thread = new TCPThread(new Socket(serverIP, Connection.PORT));
+        thread.start();
     }
 
     @Override
-    public void send(String message) { thread.send(Connection.nickName + "> " + message); }
+    public void send(String message) { thread.send(message); }
 
     @Override
-    public void exit() { thread.close(); }
+    public void exit() {
+        super.exit();
+        thread.close();
+    }
 }
 
 class P2PServer extends TCPConnection {
@@ -41,11 +45,12 @@ class P2PServer extends TCPConnection {
     }
 
     @Override
-    public void send(String message) { handle(Connection.nickName + "> " + message); }
+    public void send(String message) { handle(message); }
 
     @Override
     public void exit() {
-
+        super.exit();
+        for (TCPThread thread : clients) { thread.close(); }
     }
 
     @Override
@@ -62,7 +67,7 @@ public abstract class TCPConnection extends Thread {
 
     public TCPConnection() { instance = this; }
     public abstract void send(String message);
-    public abstract void exit();
+    public void exit() { send(Connection.nickName + " has left the chat"); }
     public void handle(String message) { System.out.println(message); }
 }
 
@@ -93,6 +98,8 @@ class TCPThread extends Thread {
             in.close();
             out.close();
             socket.close();
+
+            Connection.log("TCP connection closed");
         } catch (Exception e) {}
     }
 }

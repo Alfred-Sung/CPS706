@@ -67,7 +67,6 @@ public class Server extends Connection {
                 );
             }
         };
-        UDP.start();
 
         System.out.println("Server online!");
 

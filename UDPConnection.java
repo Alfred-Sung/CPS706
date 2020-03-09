@@ -63,6 +63,8 @@ public abstract class UDPConnection extends Thread {
         synchronized (UDPMonitor) { UDPMonitor.notify(); }
     }
 
+    public UDPConnection() { this.start(); }
+
     /**
      * UDPConnection runs as its own thread because we want it to constantly check for incoming UDP packets
      * Doing this in the main thread will lock up any other processes so we move this function into its own thread

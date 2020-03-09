@@ -1,4 +1,6 @@
+import java.lang.reflect.Method;
 import java.net.InetAddress;
+import java.util.Arrays;
 import java.util.Scanner;
 
 public class TCPUnitTest {
@@ -26,7 +28,15 @@ public class TCPUnitTest {
         }
 
         while (true) {
-            clientConnection.send(input.nextLine());
+            String query;
+            query = input.nextLine();
+
+            if (query.equals(ChatCommands.COMMANDCHAR + "exit")) {
+                System.out.println("/exit found");
+                clientConnection.exit();
+            } else {
+                clientConnection.send(query);
+            }
         }
     }
 }
