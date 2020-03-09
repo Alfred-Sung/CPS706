@@ -3,6 +3,7 @@ import java.util.Scanner;
 
 public class TCPUnitTest {
     public static void main(String[] args) throws Exception {
+        Connection.VERBOSE = true;
         ClientConnection clientConnection;
         Scanner input = new Scanner(System.in);
 

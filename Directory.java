@@ -24,8 +24,8 @@ public class Directory {
 
     public Profile getProfile(String key) {
         try {
-            InetAddress address = InetAddress.getByName(key);
-            if (list.containsKey(address)) { return list.get(address); }
+            //InetAddress address = InetAddress.getByName(key);
+            //if (list.containsKey(address)) { return list.get(address); }
             if (usernames.containsKey(key)) { return list.get(usernames.get(key)); }
         } catch (Exception e) {
             return null;

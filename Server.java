@@ -27,7 +27,7 @@ public class Server extends Connection {
                     UDP.send(address, Protocol.Status.OK, directory.print());
                     break;
                 case JOIN:
-                    Profile client = directory.getProfile(address.toString());
+                    Profile client = directory.getProfile(protocol.nickName);
                     Profile other = directory.getProfile(data);
 
                     if (other == null) {

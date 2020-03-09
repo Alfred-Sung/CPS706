@@ -23,7 +23,7 @@ public abstract class Connection {
             localMachine = InetAddress.getLocalHost();
             hostName = localMachine.getHostName();
 
-            TCPSocket = new ServerSocket(PORT);
+            //TCPSocket = new ServerSocket(PORT);
             //socket.setSoTimeout(TIMEOUT);
 
             System.out.println(localMachine.getHostAddress() + " : " + hostName);

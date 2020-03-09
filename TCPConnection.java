@@ -24,13 +24,20 @@ class P2PServer extends TCPConnection {
 
     public P2PServer() throws Exception {
         super();
+        this.start();
+    }
 
-        serverSocket = new ServerSocket(Connection.PORT);
-        while (true) {
-            TCPThread thread = new TCPThread(serverSocket.accept());
-            clients.add(thread);
-            thread.start();
-        }
+    @Override
+    public void run() {
+        try {
+            serverSocket = new ServerSocket(Connection.PORT);
+            while (true) {
+                TCPThread thread = new TCPThread(serverSocket.accept());
+                clients.add(thread);
+                thread.start();
+                Connection.log("Thread created : total " + clients.size());
+            }
+        } catch (Exception e) {}
     }
 
     @Override
