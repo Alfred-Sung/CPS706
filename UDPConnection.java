@@ -58,7 +58,9 @@ public abstract class UDPConnection extends Thread {
         } else {
             threads.remove(address);
         }
+    }
 
+    public static void notifyThread() {
         // Unblock any awaitSend/awaitReceive
         synchronized (UDPMonitor) { UDPMonitor.notify(); }
     }
@@ -220,8 +222,9 @@ class SendThread extends UDPThread {
         }
 
         // TODO: Prevent thread locking
-        if (threadResponse != null) { threadResponse.invoke(address, recent, recent.data); }
         UDPConnection.closeThread(address);
+        if (threadResponse != null) { threadResponse.invoke(address, recent, recent.data); }
+        UDPConnection.notifyThread();
     }
 }
 
@@ -249,12 +252,13 @@ class ReceiveThread extends UDPThread {
         }
 
         // TODO: Prevent thread locking
+        UDPConnection.closeThread(address);
         if (recent.status == Protocol.Status.ERROR) {
             if (failedResponse != null) { failedResponse.invoke(address, recent, recent.data); }
         } else {
             if (threadResponse != null) { threadResponse.invoke(address, recent, Protocol.constructData(fragments)); }
         }
-        UDPConnection.closeThread(address);
+        UDPConnection.notifyThread();
     }
 
     // TODO: Handle packet resending
