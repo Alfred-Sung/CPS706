@@ -7,7 +7,6 @@ import java.net.*;
  * Handles forwarding messages from peers to all users in a chat room
  */
 
-// TODO: Everything
 public class ClientConnection extends Connection {
     private final TCPConnection TCP;
 

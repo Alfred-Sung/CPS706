@@ -7,14 +7,15 @@ import java.util.HashMap;
 
 // TODO: Calculate popularity within users 1 hour log-in time
 public class Directory {
-    HashMap<InetAddress, Profile> list = new HashMap<>();
-    HashMap<String, InetAddress> usernames = new HashMap<>();
+    //IP, profile
+    HashMap<String, Profile> list = new HashMap<>();
+    // Username, IP
+    HashMap<String, String> usernames = new HashMap<>();
 
     public InetAddress getAddress(String key) {
         try {
-            InetAddress address = InetAddress.getByName(key);
-            if (list.containsKey(address)) { return address; }
-            if (usernames.containsKey(key)) { return usernames.get(key); }
+            if (list.containsKey(key)) { return list.get(key).IP; }
+            if (usernames.containsKey(key)) { return list.get(usernames.get(key)).IP; }
         } catch (Exception e) {
             return null;
         }
@@ -36,8 +37,8 @@ public class Directory {
 
     public void add(InetAddress address, Protocol protocol) {
         Profile profile = new Profile(address, protocol);
-        list.put(address, profile);
-        usernames.put(protocol.nickName, address);
+        list.put(address.toString(), profile);
+        usernames.put(protocol.nickName, address.toString());
     }
 
     public void remove(InetAddress address, Protocol protocol) {
@@ -45,59 +46,45 @@ public class Directory {
         usernames.remove(protocol.nickName);
     }
 
-    public void parse(String input) {
-        list = new HashMap<>();
-        usernames = new HashMap<>();
-
-        String[] profiles = input.split("\n");
-        for (String s : profiles) {
-            try {
-                Profile profile = Profile.parse(s);
-                list.put(profile.IP, profile);
-                usernames.put(profile.nickname, profile.IP);
-            } catch (Exception e) {
-                continue;
-            }
-        }
-    }
-
-    public String getDirectory() {
-        StringBuilder result = new StringBuilder();
-        for (Profile c : list.values()) {
-            result.append(c.getRecord() + '\n');
-        }
-
-        return result.toString();
-    }
-
     public String print() {
-        StringBuilder result = new StringBuilder("User\t\t\tIP\t\t\t\t\tChatroom\t\t\tPopularity\n");
-        result.append(getDirectory());
+        StringBuilder result = new StringBuilder("User\t\t\t" +
+                "Hostname\t\t\t\t\t" +
+                "IP\t\t\t\t\t" +
+                "Chatroom\t\t\t" +
+                "Popularity" +
+                "\n");
+        for (Profile c : list.values()) { result.append(c.getRecord() + '\n'); }
+
         return result.toString();
     }
 }
 
 class Profile {
     String nickname;
+    String hostname;
     InetAddress IP;
     String chatName;
     int activeUsers;
 
     //LocalDateTime login;
 
-    public Profile(InetAddress address, Protocol protocol) { this(protocol.nickName, address); }
-    public Profile(String nickname, InetAddress IP) { this(nickname, IP, "", 0); }
-    public Profile(String nickname, InetAddress IP, String chatName, int activeUsers) {
-        this.nickname = nickname;
-        this.IP = IP;
-        this.chatName = chatName;
-        this.activeUsers = activeUsers;
+    public Profile(InetAddress address, Protocol protocol) { this(protocol.nickName, protocol.hostName, address.toString()); }
+    public Profile(String nickname, String hostname, String IP) { this(nickname, hostname, IP, "", 0); }
+    public Profile(String nickname, String hostname, String IP, String chatName, int activeUsers) {
+        try {
+            this.nickname = nickname;
+            this.hostname = hostname;
+            this.IP = InetAddress.getByAddress(hostname, IP.getBytes());
+            this.chatName = chatName;
+            this.activeUsers = activeUsers;
 
-        //this.login = LocalDateTime.now();
+            //this.login = LocalDateTime.now();
+        } catch (Exception e) {}
     }
 
     public String getRecord() {
         return nickname + "\t\t\t" +
+        hostname + "\t\t\t\t" +
         IP + "\t\t" +
         (chatName.equals("") ? "None" : chatName) + "\t\t\t\t" +
         (Server.totalUsers == 0 ? 0 : ((float)activeUsers / Server.totalUsers));
@@ -106,15 +93,18 @@ class Profile {
     public static Profile parse (String input) {
         try {
             String[] param = input.split("\t");
-            String username = param[0];
-            InetAddress IP = InetAddress.getByName(param[1]);
-            String chatName = param[2];
-            int popularity = Integer.parseInt(param[3]);
 
-            return new Profile(username, IP, chatName, popularity);
+            String username = param[0];
+            String hostname = param[1];
+            String IP = param[2];
+            String chatName = param[3];
+            int popularity = Integer.parseInt(param[4]);
+
+            return new Profile(username, hostname, IP, chatName, popularity);
         } catch (Exception e) {
 
         }
         return null;
     }
+
 }
