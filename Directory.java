@@ -53,7 +53,7 @@ public class Directory {
                 "Chatroom\t\t\t" +
                 "Popularity" +
                 "\n");
-        for (Profile c : list.values()) { result.append(c.getRecord() + '\n'); }
+        for (Profile c : list.values()) { result.append(c.print() + '\n'); }
 
         return result.toString();
     }
@@ -68,13 +68,13 @@ class Profile {
 
     //LocalDateTime login;
 
-    public Profile(InetAddress address, Protocol protocol) { this(protocol.nickName, protocol.hostName, address.toString()); }
-    public Profile(String nickname, String hostname, String IP) { this(nickname, hostname, IP, "", 0); }
-    public Profile(String nickname, String hostname, String IP, String chatName, int activeUsers) {
+    public Profile(InetAddress address, Protocol protocol) { this(protocol.nickName, protocol.hostName, address); }
+    public Profile(String nickname, String hostname, InetAddress IP) { this(nickname, hostname, IP, "", 0); }
+    public Profile(String nickname, String hostname, InetAddress IP, String chatName, int activeUsers) {
         try {
             this.nickname = nickname;
             this.hostname = hostname;
-            this.IP = InetAddress.getByAddress(hostname, IP.getBytes());
+            this.IP = IP;
             this.chatName = chatName;
             this.activeUsers = activeUsers;
 
@@ -82,12 +82,19 @@ class Profile {
         } catch (Exception e) {}
     }
 
-    public String getRecord() {
+    public String print() {
         return nickname + "\t\t\t" +
-        hostname + "\t\t\t\t" +
         IP + "\t\t" +
         (chatName.equals("") ? "None" : chatName) + "\t\t\t\t" +
         (Server.totalUsers == 0 ? 0 : ((float)activeUsers / Server.totalUsers));
+    }
+
+    public String getData() {
+        return nickname + '\t' +
+                hostname + '\t' +
+                IP.getAddress() + '\t' +
+                chatName+ '\t' +
+                (Server.totalUsers == 0 ? 0 : ((float)activeUsers / Server.totalUsers));
     }
 
     public static Profile parse (String input) {
@@ -96,11 +103,11 @@ class Profile {
 
             String username = param[0];
             String hostname = param[1];
-            String IP = param[2];
+            String address = param[2];
             String chatName = param[3];
             int popularity = Integer.parseInt(param[4]);
 
-            return new Profile(username, hostname, IP, chatName, popularity);
+            return new Profile(username, hostname, InetAddress.getByAddress(hostname, address.getBytes()), chatName, popularity);
         } catch (Exception e) {
 
         }

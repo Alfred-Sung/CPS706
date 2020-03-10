@@ -33,10 +33,10 @@ public class Server extends Connection {
                     if (other == null) {
                         UDP.send(address, Protocol.Status.ERROR, "No such user exists");
                     } else {
-                        UDP.send(address, Protocol.Status.OK, other.getRecord());
+                        UDP.send(address, Protocol.Status.OK, other.getData());
                     }
 
-                    UDP.send(other.IP, Protocol.Status.JOIN, client.getRecord());
+                    UDP.send(other.IP, Protocol.Status.JOIN, client.getData());
                     break;
                 case EXIT:
                     Connection.log("Removed user from directory");
