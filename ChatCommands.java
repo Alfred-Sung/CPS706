@@ -53,21 +53,32 @@ public class ChatCommands {
         return result;
     }
 
-    // TODO: Must accept nickname or IP address
-    @Command(parameters = {"name"}, description = "")
-    static void join(String name) { System.out.println("User joined " + name + "'s chat!"); }
+    @Command(parameters = {"user"}, description = "Sends a request to join a user's chatroom")
+    static void join(String name) { Client.server.joinChat(name); }
+
+    @Command(parameters = {}, description = "Prints the directory of users currently online")
+    static void query() { Client.server.printDirectory(); }
+
+    @Command(parameters = {}, description = "Accepts an incoming invitaion to join your chatroom")
+    static void accept() {
+        if (Client.requestedClient != null) {
+            Client.server.send(Client.requestedClient, Protocol.Status.ACCEPT);
+        } else {
+            System.out.println("No invitation to accept");
+        }
+    }
+
+    @Command(parameters = {}, description = "Declines an incoming invitation to join your chatroom")
+    static void decline() {
+        if (Client.requestedClient != null) {
+            Client.server.send(Client.requestedClient, Protocol.Status.DECLINE);
+        } else {
+            System.out.println("No invitation to decline");
+        }
+    }
 
     @Command(parameters = {}, description = "")
-    static void query() { /* System.out.println(ServerConnection.getDirectory());*/ }
-
-    @Command(parameters = {}, description = "")
-    static void accept() { System.out.println("Thing"); }
-
-    @Command(parameters = {}, description = "")
-    static void decline() { System.out.println("Thing"); }
-
-    @Command(parameters = {}, description = "")
-    static void exit() { System.out.println("User exited chat!"); }
+    static void exit() { Client.client.exit(); }
 
     @Command(parameters = {}, description = "")
     static void logoff() {
@@ -77,5 +88,22 @@ public class ChatCommands {
     @Command(parameters = {}, description = "Lists all available chat commands")
     static void help() {
         for (Method m : methods) { System.out.println(getMethodDescription(m)); }
+    }
+
+    @Command(parameters = {"state"}, description = "For developer purposes")
+    static void verbose(String state) {
+        switch(state) {
+            case "true":
+            case "on":
+                Connection.VERBOSE = true;
+
+                break;
+            case "false":
+            case "off":
+                Connection.VERBOSE = false;
+                break;
+        }
+
+        System.out.println("Verbose is " + (Connection.VERBOSE ? "on" : "off"));
     }
 }

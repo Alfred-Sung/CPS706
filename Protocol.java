@@ -7,7 +7,6 @@ import java.util.*;
  *
  * Leading packets' data field will always contain the number of subsequent packets
  */
-// TODO: Implement fragmented packets
 public class Protocol {
     public static final int LENGTH = 80;
     public static final int DATALENGTH = 40;
@@ -119,7 +118,7 @@ public class Protocol {
         // General status codes
         OK(200), ERROR(400),
         // Client to Server status codes
-        ONLINE(1), OFFLINE(2), JOIN(3), EXIT(4), QUERY(5);
+        ONLINE(0), OFFLINE(1), JOIN(2), EXIT(3), QUERY(4), ACCEPT(5), DECLINE(6);
 
         private static HashMap<Integer, Status> map = new HashMap<Integer, Status>();
         static {

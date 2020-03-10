@@ -7,14 +7,13 @@ import java.time.LocalDateTime;
  * Tracks online users and chatrooms
  * Spawns individual threads for each user request and tracks them in a hashmap
  */
-// TODO: Respond to incoming requests
-// TODO: Handle fragmented packets
+// TODO: Finish clientResponse switch cases
 public class Server extends Connection {
     public static UDPConnection UDP;
     public static Directory directory = new Directory();
     static int totalUsers;
 
-    static Callback clientResponse = new Callback() {
+    static UDPCallback clientResponse = new UDPCallback() {
         @Override
         public void invoke(InetAddress address, Protocol protocol, String data) {
             switch (protocol.status) {
@@ -25,18 +24,33 @@ public class Server extends Connection {
                 case OFFLINE:
                     break;
                 case QUERY:
-                    UDP.send(address, Protocol.create(Protocol.Status.OK, directory.print()));
+                    UDP.send(address, Protocol.Status.OK, directory.print());
                     break;
                 case JOIN:
+                    Profile client = directory.getProfile(protocol.nickName);
+                    Profile other = directory.getProfile(data);
+
+                    if (other == null) {
+                        UDP.send(address, Protocol.Status.ERROR, "No such user exists");
+                    } else {
+                        UDP.send(address, Protocol.Status.OK, other.getData());
+                    }
+
+                    UDP.send(other.IP, Protocol.Status.JOIN, client.getData());
                     break;
                 case EXIT:
+                    Connection.log("Removed user from directory");
+                    directory.remove(address, protocol);
+                    break;
+                default:
+                    UDP.send(address, Protocol.Status.ERROR);
                     break;
             }
         }
     };
 
     public static void main(String args[]) {
-        //VERBOSE = true;
+        VERBOSE = true;
         nickName = "Server";
 
         UDP = new UDPConnection() {
@@ -44,16 +58,15 @@ public class Server extends Connection {
             public void keyNotFound(InetAddress address, Protocol protocol) {
                 receive(address, protocol,
                         clientResponse,
-                        new Callback() {
+                        new UDPCallback() {
                             @Override
                             public void invoke(InetAddress address, Protocol protocol, String data) {
-                                send(address, Protocol.create(Protocol.Status.ERROR));
+                                send(address, Protocol.Status.ERROR);
                             }
                         }
                 );
             }
         };
-        UDP.start();
 
         System.out.println("Server online!");
 
