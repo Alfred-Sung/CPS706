@@ -5,8 +5,10 @@ import java.util.HashMap;
  * Data class that holds all the information the server needs for a chatroom
  */
 
-// TODO: Calculate popularity within users 1 hour log-in time
+// TODO: Calculate connectedUsers within users 1 hour log-in time
 public class Directory {
+    public static int totalUsers;
+
     //IP, profile
     HashMap<String, Profile> list = new HashMap<>();
     // Username, IP
@@ -48,7 +50,6 @@ public class Directory {
 
     public String print() {
         StringBuilder result = new StringBuilder("User\t\t\t" +
-                "Hostname\t\t\t\t\t" +
                 "IP\t\t\t\t\t" +
                 "Chatroom\t\t\t" +
                 "Popularity" +
@@ -64,19 +65,19 @@ class Profile {
     String hostname;
     InetAddress IP;
     String chatName;
-    int activeUsers;
+    int connectedUsers;
 
     //LocalDateTime login;
 
     public Profile(InetAddress address, Protocol protocol) { this(protocol.nickName, protocol.hostName, address); }
-    public Profile(String nickname, String hostname, InetAddress IP) { this(nickname, hostname, IP, "", 0); }
-    public Profile(String nickname, String hostname, InetAddress IP, String chatName, int activeUsers) {
+    public Profile(String nickname, String hostname, InetAddress IP) { this(nickname, hostname, IP, "", 0f); }
+    public Profile(String nickname, String hostname, InetAddress IP, String chatName, int connectedUsers) {
         try {
             this.nickname = nickname;
             this.hostname = hostname;
             this.IP = IP;
             this.chatName = chatName;
-            this.activeUsers = activeUsers;
+            this.connectedUsers = connectedUsers;
 
             //this.login = LocalDateTime.now();
         } catch (Exception e) {}
@@ -84,9 +85,9 @@ class Profile {
 
     public String print() {
         return nickname + "\t\t\t" +
-        IP + "\t\t" +
-        (chatName.equals("") ? "None" : chatName) + "\t\t\t\t" +
-        (Server.totalUsers == 0 ? 0 : ((float)activeUsers / Server.totalUsers));
+                IP + "\t\t" +
+                (chatName.equals("") ? "None" : chatName) + "\t\t\t\t" +
+                ((float)connectedUsers / Directory.totalUsers);
     }
 
     public String getData() {
@@ -94,7 +95,7 @@ class Profile {
                 hostname + '\t' +
                 IP.getHostAddress() + '\t' +
                 chatName+ '\t' +
-                (Server.totalUsers == 0 ? 0 : ((float)activeUsers / Server.totalUsers));
+                connectedUsers;
     }
 
     public static Profile parse (String input) {
@@ -105,11 +106,11 @@ class Profile {
             String hostname = param[1];
             String address = param[2];
             String chatName = param[3];
-            int popularity = Integer.parseInt(param[4]);
+            int connectedUsers = Integer.parseInt(param[4]);
 
-            return new Profile(username, hostname, InetAddress.getByAddress(hostname, address.getBytes()), chatName, popularity);
+            return new Profile(username, hostname, InetAddress.getByAddress(hostname, address.getBytes()), chatName, connectedUsers);
         } catch (Exception e) {
-
+            System.out.println(e);
         }
         return null;
     }
