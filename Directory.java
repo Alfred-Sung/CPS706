@@ -41,11 +41,13 @@ public class Directory {
         Profile profile = new Profile(address, protocol);
         list.put(address.toString(), profile);
         usernames.put(protocol.nickName, address.toString());
+        totalUsers++;
     }
 
     public void remove(InetAddress address, Protocol protocol) {
         list.remove(address);
         usernames.remove(protocol.nickName);
+        totalUsers--;
     }
 
     public String print() {
@@ -70,7 +72,7 @@ class Profile {
     //LocalDateTime login;
 
     public Profile(InetAddress address, Protocol protocol) { this(protocol.nickName, protocol.hostName, address); }
-    public Profile(String nickname, String hostname, InetAddress IP) { this(nickname, hostname, IP, "", 0f); }
+    public Profile(String nickname, String hostname, InetAddress IP) { this(nickname, hostname, IP, "", 0); }
     public Profile(String nickname, String hostname, InetAddress IP, String chatName, int connectedUsers) {
         try {
             this.nickname = nickname;
@@ -85,7 +87,7 @@ class Profile {
 
     public String print() {
         return nickname + "\t\t\t" +
-                IP + "\t\t" +
+                IP.getHostAddress() + "\t\t" +
                 (chatName.equals("") ? "None" : chatName) + "\t\t\t\t" +
                 ((float)connectedUsers / Directory.totalUsers);
     }
@@ -94,7 +96,7 @@ class Profile {
         return nickname + '\t' +
                 hostname + '\t' +
                 IP.getHostAddress() + '\t' +
-                chatName+ '\t' +
+                chatName + '\t' +
                 connectedUsers;
     }
 
@@ -104,11 +106,12 @@ class Profile {
 
             String username = param[0];
             String hostname = param[1];
-            String address = param[2];
+            // Maybe slow
+            InetAddress IP = InetAddress.getByName(param[2]);
             String chatName = param[3];
             int connectedUsers = Integer.parseInt(param[4]);
 
-            return new Profile(username, hostname, InetAddress.getByAddress(hostname, address.getBytes()), chatName, connectedUsers);
+            return new Profile(username, hostname, IP, chatName, connectedUsers);
         } catch (Exception e) {
             System.out.println(e);
         }
