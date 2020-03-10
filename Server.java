@@ -22,6 +22,8 @@ public class Server extends Connection {
                     directory.add(address, protocol);
                     break;
                 case OFFLINE:
+                    Connection.log("Removed user from directory");
+                    directory.remove(address, protocol);
                     break;
                 case QUERY:
                     UDP.send(address, Protocol.Status.OK, directory.print());
@@ -32,6 +34,8 @@ public class Server extends Connection {
 
                     if (other == null) {
                         UDP.send(address, Protocol.Status.ERROR, "No such user exists");
+                    } else if (client.IP.equals(other.IP)) {
+                        UDP.send(address, Protocol.Status.ERROR, "Cannot send invitation to self");
                     } else {
                         UDP.send(address, Protocol.Status.OK, other.getData());
                     }
@@ -39,8 +43,11 @@ public class Server extends Connection {
                     UDP.send(other.IP, Protocol.Status.JOIN, client.getData());
                     break;
                 case EXIT:
-                    Connection.log("Removed user from directory");
-                    directory.remove(address, protocol);
+
+                    break;
+                case ACCEPT:
+                    break;
+                case DECLINE:
                     break;
                 default:
                     UDP.send(address, Protocol.Status.ERROR);

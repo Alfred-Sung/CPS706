@@ -51,6 +51,7 @@ public class ServerConnection extends Connection {
     }
 
     public void send(InetAddress address, Protocol.Status status) { UDP.awaitSend(address, status); }
+    public void send(InetAddress address, Protocol.Status status, String message) { UDP.awaitSend(address, status, message); }
 
     public boolean connect(String serverIP) {
         try {
@@ -111,7 +112,7 @@ public class ServerConnection extends Connection {
 
                             System.out.println("Waiting for " + TCPServerProfile.nickname + " to accept");
 
-                            UDP.awaitReceive(TCPServerProfile.IP,
+                            UDP.awaitReceive(serverAddress,
                                     new UDPCallback() {
                                         @Override
                                         public void invoke(InetAddress address, Protocol protocol, String data) {

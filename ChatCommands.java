@@ -62,7 +62,7 @@ public class ChatCommands {
     @Command(parameters = {}, description = "Accepts an incoming invitaion to join your chatroom")
     static void accept() {
         if (Client.requestedClient != null) {
-            Client.server.send(Client.requestedClient, Protocol.Status.ACCEPT);
+            Client.server.send(ServerConnection.serverAddress, Protocol.Status.ACCEPT, Client.requestedClient.getHostAddress());
         } else {
             System.out.println("No invitation to accept");
         }
@@ -71,7 +71,7 @@ public class ChatCommands {
     @Command(parameters = {}, description = "Declines an incoming invitation to join your chatroom")
     static void decline() {
         if (Client.requestedClient != null) {
-            Client.server.send(Client.requestedClient, Protocol.Status.DECLINE);
+            Client.server.send(ServerConnection.serverAddress, Protocol.Status.DECLINE, Client.requestedClient.getHostAddress());
         } else {
             System.out.println("No invitation to decline");
         }
