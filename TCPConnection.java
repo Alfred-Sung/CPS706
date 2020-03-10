@@ -88,7 +88,10 @@ class TCPThread extends Thread {
             while ((inputLine = in.readLine()) != null) {
                 TCPConnection.instance.handle(inputLine);
             }
-        } catch (Exception e) {}
+        } catch (Exception e) {
+            System.out.println(e);
+        }
+        Connection.log("TCP Thread closed");
     }
 
     public void send(String message) { out.println(message); }
