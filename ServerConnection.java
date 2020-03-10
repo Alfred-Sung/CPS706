@@ -105,8 +105,11 @@ public class ServerConnection extends Connection {
                         public void invoke(InetAddress address, Protocol protocol, String data) {
                             try {
                                 TCPServerProfile = Profile.parse(data);
-                                System.out.println("Waiting for " + TCPServerProfile.nickname + " to accept");
-                            } catch (Exception e) {}
+                            } catch (Exception e) {
+                                System.out.println(e);
+                            }
+
+                            System.out.println("Waiting for " + TCPServerProfile.nickname + " to accept");
 
                             UDP.awaitReceive(TCPServerProfile.IP,
                                     new UDPCallback() {

@@ -92,7 +92,7 @@ class Profile {
     public String getData() {
         return nickname + '\t' +
                 hostname + '\t' +
-                IP.getAddress() + '\t' +
+                IP.getHostAddress() + '\t' +
                 chatName+ '\t' +
                 (Server.totalUsers == 0 ? 0 : ((float)activeUsers / Server.totalUsers));
     }
