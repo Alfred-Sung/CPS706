@@ -46,8 +46,12 @@ public class Server extends Connection {
 
                     break;
                 case ACCEPT:
+                    Profile profile = directory.getProfile(data);
+                    UDP.send(profile.IP, Protocol.Status.ACCEPT);
                     break;
                 case DECLINE:
+                    profile = directory.getProfile(data);
+                    UDP.send(profile.IP, Protocol.Status.DECLINE);
                     break;
                 default:
                     UDP.send(address, Protocol.Status.ERROR);

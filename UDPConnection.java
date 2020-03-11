@@ -16,8 +16,9 @@ import java.util.concurrent.TimeoutException;
 // TODO: Implement packet timeout/resending
 interface UDPCallback { void invoke(InetAddress address, Protocol protocol, String data); }
 public abstract class UDPConnection extends Thread {
+    public static UDPConnection instance;
     public static final Object UDPMonitor = new Object();
-    public static DatagramSocket socket;
+    public DatagramSocket socket;
 
     // Each UDP request is identified by it's sender IP and holds a queue of threads waiting to be executed
     // Each IP's thread can only be executed one at a time before it is dequeued
@@ -65,7 +66,10 @@ public abstract class UDPConnection extends Thread {
         synchronized (UDPMonitor) { UDPMonitor.notify(); }
     }
 
-    public UDPConnection() { this.start(); }
+    public UDPConnection() {
+        instance = this;
+        this.start();
+    }
 
     /**
      * UDPConnection runs as its own thread because we want it to constantly check for incoming UDP packets
@@ -199,7 +203,7 @@ class SendThread extends UDPThread {
         for (int i = 0; i < outbound.length; i++) {
             try {
                 DatagramPacket packet = new DatagramPacket(outbound[i].getBytes(), Protocol.LENGTH, address, Connection.PORT);
-                UDPConnection.socket.send(packet);
+                UDPConnection.instance.socket.send(packet);
                 Connection.log(outbound[i]);
 
                 //Connection.socket.setSoTimeout(Connection.TIMEOUT);
@@ -267,7 +271,7 @@ class ReceiveThread extends UDPThread {
             Connection.log("Acknowledged!");
             Protocol response = Protocol.create(Protocol.Status.OK)[0];
             DatagramPacket packet = new DatagramPacket(response.getBytes(), Protocol.LENGTH, address, Connection.PORT);
-            UDPConnection.socket.send(packet);
+            UDPConnection.instance.socket.send(packet);
             //Connection.socket.setSoTimeout(Connection.TIMEOUT);
         } catch (Exception e) {
 

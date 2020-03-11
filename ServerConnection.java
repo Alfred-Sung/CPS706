@@ -33,9 +33,7 @@ public class ServerConnection extends Connection {
         UDP = new UDPConnection() {
             @Override
             public void keyNotFound(InetAddress address, Protocol protocol) {
-                if (!address.equals(serverAddress)) {
-                    send(address, Protocol.Status.ERROR);
-                } else {
+                if (address.equals(serverAddress)) {
                     receive(address, protocol,
                             response,
                             new UDPCallback() {

@@ -76,28 +76,39 @@ public class Protocol {
         this.status = Status.valueOf(buffer.getInt(0));
         this.sequence = buffer.getInt(4);
 
+        buffer.position(16);
         byte[] hostNameBytes = new byte[16];
-        buffer.get(8, hostNameBytes, 0, hostNameBytes.length);
+        buffer.get(hostNameBytes);
         this.hostName = new String(hostNameBytes).trim();
 
+        buffer.position(24);
         byte[] nickNameBytes = new byte[16];
-        buffer.get(24, nickNameBytes, 0, nickNameBytes.length);
+        buffer.get(nickNameBytes);
         this.nickName = new String(nickNameBytes).trim();
 
+        buffer.position(40);
         byte[] dataBytes = new byte[40];
-        buffer.get(40, dataBytes, 0, dataBytes.length);
+        buffer.get(dataBytes);
         this.data = new String(dataBytes).trim();
     }
 
     public byte[] getBytes(){
         ByteBuffer result = ByteBuffer.allocate(LENGTH);
-        result.putInt(0, status.getValue());
-        result.putInt(4, sequence);
+        result.position(0);
+        result.putInt(status.getValue());
 
-        result.put(8, hostName.getBytes());
-        result.put(24, nickName.getBytes());
+        result.position(4);
+        result.putInt(sequence);
 
-        result.put(40, data.getBytes());
+        result.position(8);
+        result.put(hostName.getBytes());
+
+        result.position(24);
+        result.put(nickName.getBytes());
+
+        System.out.println(data.getBytes().length);
+        result.position(40);
+        result.put(data.getBytes());
 
         return result.array();
     }
