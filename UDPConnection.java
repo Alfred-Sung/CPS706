@@ -206,16 +206,18 @@ class SendThread extends UDPThread {
                 UDPConnection.instance.socket.send(packet);
                 Connection.log(outbound[i]);
 
-                //Connection.socket.setSoTimeout(Connection.TIMEOUT);
-                lock();
-
-                switch (recent.status) {
-                    case OK:
-                        break;
-                    default:
-                        i--;
-                        if (fail()) { return; };
-                        break;
+                if (lock()) {
+                    switch (recent.status) {
+                        case OK:
+                            break;
+                        default:
+                            i--;
+                            if (fail()) { return; };
+                            break;
+                    }
+                } else {
+                    i--;
+                    if (fail()) { return; };
                 }
             } catch (Exception e) {
                 Connection.log(e + " at " + e.getStackTrace()[0]);
@@ -245,11 +247,11 @@ class ReceiveThread extends UDPThread {
 
     @Override
     public void run() {
-        lock();
+        while (!lock()) { acknowledge(); }
 
         //System.out.println(fragments.length);
         for (int i = 0; i < fragments.length; i++) {
-            lock();
+            while (!lock()) { acknowledge(); }
 
             fragments[i] = recent;
             acknowledge();
@@ -302,7 +304,7 @@ abstract class UDPThread extends Thread {
     protected InetAddress address;
     protected Protocol recent;
 
-    protected boolean isLocked = true;
+    private boolean isNotified;
 
     UDPCallback threadResponse;
     UDPCallback failedResponse;
@@ -335,17 +337,22 @@ abstract class UDPThread extends Thread {
         return false;
     }
 
-    protected synchronized void lock() {
+    protected synchronized boolean lock() {
         try {
-            while (isLocked) { wait(); }
-            isLocked = true;
-        } catch (Exception e) {
+            wait(Connection.TIMEOUT);
+        } catch (Exception e) {}
 
+        if (!isNotified) {
+            Connection.log("Receive timeout");
+            return false;
         }
+
+        isNotified = false;
+        return true;
     }
 
     protected synchronized void unlock() {
-        isLocked = false;
+        isNotified = true;
         notify();
     }
 }
