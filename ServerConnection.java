@@ -7,25 +7,7 @@ import java.util.HashMap;
 public class ServerConnection extends Connection {
     static InetAddress serverAddress;
     private static UDPConnection UDP;
-
     private static Profile TCPServerProfile;
-    static UDPCallback response = new UDPCallback() {
-        @Override
-        public void invoke(InetAddress address, Protocol protocol, String data) {
-            switch (protocol.status) {
-                case JOIN:
-                    Profile profile = Profile.parse(data);
-                    Client.requestedClient = profile.IP;
-
-                    System.out.println(profile.nickname + " wants to chat");
-                    System.out.println("Type /accept or /decline");
-                    break;
-                default:
-                    UDP.send(address, Protocol.Status.ERROR);
-                    break;
-            }
-        }
-    };
 
     public ServerConnection() {
         VERBOSE = true;
@@ -33,9 +15,20 @@ public class ServerConnection extends Connection {
         UDP = new UDPConnection() {
             @Override
             public void keyNotFound(InetAddress address, Protocol protocol) {
-                if (address.equals(serverAddress)) {
+                if (!address.equals(serverAddress)) { return; }
+
+                if (protocol.status == Protocol.Status.JOIN) {
                     receive(address, protocol,
-                            response,
+                            new UDPCallback() {
+                                @Override
+                                public void invoke(InetAddress address, Protocol protocol, String data) {
+                                    Profile profile = Profile.parse(data);
+                                    Client.requestedClient = profile.IP;
+
+                                    System.out.println(profile.nickname + " wants to chat");
+                                    System.out.println("Type /accept or /decline");
+                                }
+                            },
                             new UDPCallback() {
                                 @Override
                                 public void invoke(InetAddress address, Protocol protocol, String data) {

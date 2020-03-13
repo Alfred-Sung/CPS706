@@ -255,7 +255,6 @@ class ReceiveThread extends UDPThread {
             acknowledge();
         }
 
-        // TODO: Prevent thread locking
         UDPConnection.closeThread(address);
         if (recent.status == Protocol.Status.ERROR) {
             if (failedResponse != null) { failedResponse.invoke(address, recent, recent.data); }
