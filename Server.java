@@ -53,9 +53,8 @@ public class Server extends Connection {
                     profile = directory.getProfile(data);
                     UDP.send(profile.IP, Protocol.Status.DECLINE);
                     break;
-                default:
-                    UDP.send(address, Protocol.Status.ERROR);
-                    break;
+
+                // Else discard OK/ERROR packets
             }
         }
     };
