@@ -268,13 +268,15 @@ class ReceiveThread extends UDPThread {
     // TODO: Handle packet resending
     void acknowledge() {
         try {
-            Connection.log("Acknowledged!");
             Protocol response = Protocol.create(Protocol.Status.OK)[0];
             DatagramPacket packet = new DatagramPacket(response.getBytes(), Protocol.LENGTH, address, Connection.PORT);
             UDPConnection.instance.socket.send(packet);
             //Connection.socket.setSoTimeout(Connection.TIMEOUT);
-        } catch (Exception e) {
 
+            Connection.log("Acknowledged!");
+        } catch (Exception e) {
+            System.out.println(e);
+            //acknowledge();
         }
     }
 
