@@ -106,7 +106,6 @@ public class Protocol {
         result.position(24);
         result.put(nickName.getBytes());
 
-        System.out.println(data.getBytes().length);
         result.position(40);
         result.put(data.getBytes());
 

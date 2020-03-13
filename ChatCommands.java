@@ -59,7 +59,7 @@ public class ChatCommands {
     @Command(parameters = {}, description = "Prints the directory of users currently online")
     static void query() { Client.server.printDirectory(); }
 
-    @Command(parameters = {}, description = "Accepts an incoming invitaion to join your chatroom")
+    @Command(parameters = {}, description = "Accepts an incoming invitation to join your chatroom")
     static void accept() {
         if (Client.requestedClient != null) {
             Client.server.send(ServerConnection.serverAddress, Protocol.Status.ACCEPT, Client.requestedClient.getHostAddress());

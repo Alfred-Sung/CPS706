@@ -45,7 +45,7 @@ class P2PServer extends TCPConnection {
     }
 
     @Override
-    public void send(String message) { handle(message); }
+    public void send(String message) { if (clients.size() > 0) { handle(message); } }
 
     @Override
     public void exit() {
@@ -88,9 +88,7 @@ class TCPThread extends Thread {
             while ((inputLine = in.readLine()) != null) {
                 TCPConnection.instance.handle(inputLine);
             }
-        } catch (Exception e) {
-            System.out.println(e);
-        }
+        } catch (Exception e) {}
         Connection.log("TCP Thread closed");
     }
 
@@ -98,11 +96,11 @@ class TCPThread extends Thread {
 
     public void close() {
         try {
+            send(null);
             in.close();
             out.close();
             socket.close();
 
-            Connection.log("TCP connection closed");
         } catch (Exception e) {}
     }
 }

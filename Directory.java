@@ -1,4 +1,5 @@
 import java.net.InetAddress;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 
 /**
@@ -69,7 +70,7 @@ class Profile {
     String chatName;
     int connectedUsers;
 
-    //LocalDateTime login;
+    LocalDateTime joinTime;
 
     public Profile(InetAddress address, Protocol protocol) { this(protocol.nickName, protocol.hostName, address); }
     public Profile(String nickname, String hostname, InetAddress IP) { this(nickname, hostname, IP, "", 0); }
@@ -80,8 +81,6 @@ class Profile {
             this.IP = IP;
             this.chatName = chatName;
             this.connectedUsers = connectedUsers;
-
-            //this.login = LocalDateTime.now();
         } catch (Exception e) {}
     }
 
@@ -99,6 +98,9 @@ class Profile {
                 chatName + '\t' +
                 connectedUsers;
     }
+
+    public void setJoinTime() { this.joinTime = LocalDateTime.now(); }
+    public void clearJoinTime() { this.joinTime = LocalDateTime.now(); }
 
     public static Profile parse (String input) {
         try {
