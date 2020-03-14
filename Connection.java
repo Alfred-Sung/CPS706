@@ -15,7 +15,7 @@ public abstract class Connection {
 
     protected static final int PORT = 65535;
     protected static final int TIMEOUT = 100;
-    protected static final int MAXREPEAT = 10;
+    protected static final int MAXREPEAT = 5;
     protected static ServerSocket TCPSocket;
 
     static {

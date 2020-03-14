@@ -247,14 +247,15 @@ class ReceiveThread extends UDPThread {
 
     @Override
     public void run() {
-        while (!lock()) { acknowledge(); }
+        // Wait for leading packet; contains data to initialize fragments
+        while (!lock()) { acknowledge(0); }
 
         //System.out.println(fragments.length);
         for (int i = 0; i < fragments.length; i++) {
-            while (!lock()) { acknowledge(); }
+            while (!lock()) { acknowledge(i); }
 
             fragments[i] = recent;
-            acknowledge();
+            acknowledge(i + 1);
         }
 
         UDPConnection.closeThread(address);
@@ -267,13 +268,11 @@ class ReceiveThread extends UDPThread {
     }
 
     // TODO: Handle packet resending
-    void acknowledge() {
+    void acknowledge(int index) {
         try {
-            Protocol response = Protocol.create(Protocol.Status.OK)[0];
+            Protocol response = Protocol.create(Protocol.Status.OK, Integer.toString(index))[0];
             DatagramPacket packet = new DatagramPacket(response.getBytes(), Protocol.LENGTH, address, Connection.PORT);
             UDPConnection.instance.socket.send(packet);
-            //Connection.socket.setSoTimeout(Connection.TIMEOUT);
-
             Connection.log("Acknowledged!");
         } catch (Exception e) {
             System.out.println(e);
@@ -286,9 +285,10 @@ class ReceiveThread extends UDPThread {
         recent = protocol;
         Connection.log(address, protocol);
 
+        // Get leading packet; initialize size of fragments
         if (protocol.sequence == 0) {
             fragments = new Protocol[Integer.parseInt(protocol.data)];
-            acknowledge();
+            acknowledge(1);
         }
 
         unlock();

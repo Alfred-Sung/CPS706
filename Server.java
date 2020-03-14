@@ -53,8 +53,6 @@ public class Server extends Connection {
                     profile = directory.getProfile(data);
                     UDP.send(profile.IP, Protocol.Status.DECLINE);
                     break;
-
-                // Else discard OK/ERROR packets
             }
         }
     };
@@ -66,6 +64,9 @@ public class Server extends Connection {
         UDP = new UDPConnection() {
             @Override
             public void keyNotFound(InetAddress address, Protocol protocol) {
+                // Discard incoming new OK/ERROR packets
+                if (protocol.status == Protocol.Status.OK || protocol.status == Protocol.Status.ERROR) { return; }
+
                 receive(address, protocol,
                         clientResponse,
                         new UDPCallback() {
