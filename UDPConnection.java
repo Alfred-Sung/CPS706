@@ -343,7 +343,7 @@ abstract class UDPThread extends Thread {
         } catch (Exception e) {}
 
         if (!isNotified) {
-            Connection.log("Receive timeout");
+            Connection.log("Received timeout");
             return false;
         }
 

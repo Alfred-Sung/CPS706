@@ -71,21 +71,30 @@ public class ServerConnection extends Connection {
 
     public void printDirectory() {
         try {
-            UDP.awaitSend(serverAddress, Protocol.Status.QUERY);
-            UDP.awaitReceive(serverAddress,
+            UDP.awaitSend(serverAddress, Protocol.Status.QUERY,
                     new UDPCallback() {
                         @Override
-                        public void invoke(InetAddress address, Protocol protocol, String data) { System.out.println(data); }
+                        public void invoke(InetAddress address, Protocol protocol, String data) {
+                            UDP.awaitReceive(serverAddress,
+                                    new UDPCallback() {
+                                        @Override
+                                        public void invoke(InetAddress address, Protocol protocol, String data) {
+                                            System.out.println(data);
+                                            System.out.println("Type /join <user> to join a chat");
+                                        }
+                                    },
+                                    new UDPCallback() {
+                                        @Override
+                                        public void invoke(InetAddress address, Protocol protocol, String data) { System.out.println("Error"); }
+                                    }
+                            );
+                        }
                     },
-                    new UDPCallback() {
-                        @Override
-                        public void invoke(InetAddress address, Protocol protocol, String data) { System.out.println("Error"); }
-                    }
+                    null
             );
         } catch (Exception e) {
             System.out.println(e + " at " + e.getStackTrace()[0]);
         }
-        System.out.println("Type /join <user> to join a chat");
     }
 
     public void joinChat(String peerIP) {
