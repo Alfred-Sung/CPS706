@@ -105,8 +105,8 @@ public abstract class UDPConnection extends Thread {
      */
     public void send(InetAddress toIP, Protocol.Status status, String message) { send(toIP, Protocol.create(status, message), null, null); }
     public void send(InetAddress toIP, Protocol.Status status, String message, UDPCallback threadResponse, UDPCallback failResponse) { send(toIP, Protocol.create(status, message), threadResponse, failResponse); }
-    public void send(InetAddress toIP, Protocol.Status status) { send(toIP, Protocol.create(status), null, null); }
-    public void send(InetAddress toIP, Protocol.Status status, UDPCallback threadResponse, UDPCallback failResponse) { send(toIP, Protocol.create(status), threadResponse, failResponse); }
+    public void send(InetAddress toIP, Protocol.Status status) { send(toIP, Protocol.create(status, 0), null, null); }
+    public void send(InetAddress toIP, Protocol.Status status, UDPCallback threadResponse, UDPCallback failResponse) { send(toIP, Protocol.create(status, 0), threadResponse, failResponse); }
 
     private void send(InetAddress toIP, Protocol[] fragments, UDPCallback threadResponse, UDPCallback failResponse) {
         UDPThread thread = new SendThread(toIP, fragments, threadResponse, failResponse);
@@ -118,8 +118,8 @@ public abstract class UDPConnection extends Thread {
      */
     public void awaitSend(InetAddress toIP, Protocol.Status status, String message) { awaitSend(toIP, Protocol.create(status, message), null, null); }
     public void awaitSend(InetAddress toIP, Protocol.Status status, String message, UDPCallback threadResponse, UDPCallback failResponse) { awaitSend(toIP, Protocol.create(status, message), threadResponse, failResponse); }
-    public void awaitSend(InetAddress toIP, Protocol.Status status) { awaitSend(toIP, Protocol.create(status), null, null); }
-    public void awaitSend(InetAddress toIP, Protocol.Status status, UDPCallback threadResponse, UDPCallback failResponse) { awaitSend(toIP, Protocol.create(status), threadResponse, failResponse); }
+    public void awaitSend(InetAddress toIP, Protocol.Status status) { awaitSend(toIP, Protocol.create(status, 0), null, null); }
+    public void awaitSend(InetAddress toIP, Protocol.Status status, UDPCallback threadResponse, UDPCallback failResponse) { awaitSend(toIP, Protocol.create(status, 0), threadResponse, failResponse); }
 
 
     private void awaitSend(InetAddress toIP, Protocol[] fragments, UDPCallback threadResponse, UDPCallback failResponse) {
@@ -238,7 +238,7 @@ class ReceiveThread extends UDPThread {
         // Wait for leading packet; contains data to initialize fragments
         while (!lock()) {
             if (failed > Connection.MAXREPEAT) { return; }
-            acknowledge(index);
+            acknowledge(0);
         }
 
         while (index < fragments.length) {
@@ -247,8 +247,7 @@ class ReceiveThread extends UDPThread {
                 acknowledge(index);
             }
 
-            fragments[index] = recent;
-            //System.out.println(index);
+            fragments[index - 1] = recent;
             acknowledge(index + 1);
         }
 
@@ -263,7 +262,7 @@ class ReceiveThread extends UDPThread {
 
     void acknowledge(int i) {
         try {
-            Protocol response = Protocol.create(Protocol.Status.OK, Integer.toString(i))[0];
+            Protocol response = Protocol.create(Protocol.Status.OK, i)[0];
             DatagramPacket packet = new DatagramPacket(response.getBytes(), Protocol.LENGTH, toIP, Connection.PORT);
             UDPConnection.instance.socket.send(packet);
             Connection.log(response);
@@ -274,7 +273,8 @@ class ReceiveThread extends UDPThread {
     }
 
     @Override
-    public void pass(Protocol protocol){
+    public void pass(Protocol protocol) {
+        if (protocol.sequence < index) { return; }
         // Get leading packet; initialize size of fragments
         if (protocol.sequence == 0) {
             int length = Integer.parseInt(protocol.data);
@@ -297,7 +297,7 @@ abstract class UDPThread extends Thread {
 
     protected InetAddress toIP;
     protected int index = 0;
-    protected Protocol[] fragments;
+    protected Protocol[] fragments = new Protocol[0];
     protected Protocol recent;
 
     //private boolean isLocked = true;

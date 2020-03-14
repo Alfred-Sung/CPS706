@@ -72,7 +72,7 @@ public class Server extends Connection {
                         new UDPCallback() {
                             @Override
                             public void invoke(InetAddress address, Protocol protocol, String data) {
-                                send(address, Protocol.Status.ERROR);
+                                send(address, Protocol.Status.ERROR, "");
                             }
                         }
                 );

@@ -22,7 +22,7 @@ public class Protocol {
      * Methods to create Protocol packets
      * Automatically handles splitting
      */
-    public static Protocol[] create(Status status) { return new Protocol[] { new Protocol(status, 0, "0") }; }
+    public static Protocol[] create(Status status, int sequence) { return new Protocol[] { new Protocol(status, 0, Integer.toString(sequence)) }; }
     public static Protocol[] create(byte[] data) { return new Protocol[] { new Protocol(data) }; }
     public static Protocol[] create(Status status, String data) { return split(status, data); }
 
