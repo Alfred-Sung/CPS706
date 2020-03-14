@@ -207,9 +207,7 @@ class SendThread extends UDPThread {
                 UDPConnection.instance.socket.send(packet);
                 Connection.log(outbound[index]);
 
-                if (lock()) {
-                    index++;
-                } else {
+                if (!lock()) {
                     if (failed > Connection.MAXREPEAT) { return; }
                 }
             } catch (Exception e) {
@@ -222,36 +220,11 @@ class SendThread extends UDPThread {
         UDPConnection.notifyThread();
     }
 
-    /*
     @Override
-    public void run() {
-        for (int i = 0; i < outbound.length; i++) {
-            try {
-                DatagramPacket packet = new DatagramPacket(outbound[i].getBytes(), Protocol.LENGTH, toIP, Connection.PORT);
-                UDPConnection.instance.socket.send(packet);
-                Connection.log(outbound[i]);
-
-                if (lock()) {
-                    switch (recent.status) {
-                        case OK:
-                            break;
-                        default:
-                            i--;
-                            if (fail()) { return; };
-                            break;
-                    }
-                } else {
-                    i--;
-                    if (fail()) { return; };
-                }
-            } catch (Exception e) {
-                Connection.log(e + " at " + e.getStackTrace()[0]);
-
-                i--;
-                if (fail()) { return; };
-            }
-        }
-        */
+    public void pass(Protocol protocol) {
+        super.pass(protocol);
+        index = Integer.parseInt(protocol.data);
+    }
 }
 
 /**
@@ -281,6 +254,7 @@ class ReceiveThread extends UDPThread {
             }
 
             fragments[i] = recent;
+            //System.out.println(i);
             acknowledge(i + 1);
         }
 
@@ -312,8 +286,9 @@ class ReceiveThread extends UDPThread {
 
         // Get leading packet; initialize size of fragments
         if (protocol.sequence == 0) {
-            fragments = new Protocol[Integer.parseInt(protocol.data)];
-            acknowledge(1);
+            int length = Integer.parseInt(protocol.data);
+            fragments = new Protocol[length];
+            acknowledge(Math.min(length, 1));
         }
 
         unlock();
@@ -351,24 +326,12 @@ abstract class UDPThread extends Thread {
         }
     }
 
-    /*
-    protected boolean fail() {
-        failed++;
-        if (failed > Connection.MAXREPEAT) {
-            Connection.log("!!! Failed attempts exceeded !!!");
-            if (failedResponse != null) { failedResponse.invoke(address, recent, recent.data); }
-            UDPConnection.closeThread(address);
-            return true;
-        }
-
-        return false;
-    }
-    */
-
     protected synchronized boolean lock() {
         try {
             wait(Connection.TIMEOUT);
-        } catch (Exception e) {}
+        } catch (Exception e) {
+            System.out.println(e);
+        }
 
         if (!isNotified) {
             Connection.log("Received timeout");

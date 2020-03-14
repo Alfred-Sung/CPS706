@@ -14,7 +14,7 @@ public abstract class Connection {
     public static boolean VERBOSE = false;
 
     protected static final int PORT = 65535;
-    protected static final int TIMEOUT = 100;
+    protected static final int TIMEOUT = 1000;
     protected static final int MAXREPEAT = 5;
     protected static ServerSocket TCPSocket;
 
