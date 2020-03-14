@@ -218,8 +218,9 @@ class SendThread extends UDPThread {
 
     @Override
     public void pass(Protocol protocol) {
-        super.pass(protocol);
         index = Integer.parseInt(protocol.data);
+
+        super.pass(protocol);
     }
 }
 
@@ -237,19 +238,17 @@ class ReceiveThread extends UDPThread {
         // Wait for leading packet; contains data to initialize fragments
         while (!lock()) {
             if (failed > Connection.MAXREPEAT) { return; }
-            acknowledge(0);
+            acknowledge(index);
         }
 
-        //System.out.println(fragments.length);
         while (index < fragments.length) {
             while (!lock()) {
                 if (failed > Connection.MAXREPEAT) { return; }
-                System.out.println("Test");
                 acknowledge(index);
             }
 
             fragments[index] = recent;
-            System.out.println(index);
+            //System.out.println(index);
             acknowledge(index + 1);
         }
 
@@ -262,9 +261,9 @@ class ReceiveThread extends UDPThread {
         UDPConnection.notifyThread();
     }
 
-    void acknowledge(int index) {
+    void acknowledge(int i) {
         try {
-            Protocol response = Protocol.create(Protocol.Status.OK, Integer.toString(index))[0];
+            Protocol response = Protocol.create(Protocol.Status.OK, Integer.toString(i))[0];
             DatagramPacket packet = new DatagramPacket(response.getBytes(), Protocol.LENGTH, toIP, Connection.PORT);
             UDPConnection.instance.socket.send(packet);
             Connection.log(response);
@@ -301,6 +300,7 @@ abstract class UDPThread extends Thread {
     protected Protocol[] fragments;
     protected Protocol recent;
 
+    //private boolean isLocked = true;
     private boolean isNotified;
 
     UDPCallback threadResponse;
@@ -324,17 +324,19 @@ abstract class UDPThread extends Thread {
     }
 
     protected synchronized boolean lock() {
-        try {
-            wait(Connection.TIMEOUT);
-        } catch (Exception e) {
-            System.out.println(e);
-        }
-
         if (!isNotified) {
-            Connection.log("Received timeout");
-            failed++;
-            if (failed > Connection.MAXREPEAT) { Connection.log("failed maximum exceeded"); }
-            return false;
+            try {
+                wait(Connection.TIMEOUT);
+            } catch (Exception e) {
+                System.out.println(e);
+            }
+
+            if (!isNotified) {
+                Connection.log("Received timeout");
+                failed++;
+                if (failed > Connection.MAXREPEAT) { Connection.log("Failed maximum exceeded"); }
+                return false;
+            }
         }
 
         isNotified = false;
