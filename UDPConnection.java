@@ -186,26 +186,22 @@ public abstract class UDPConnection extends Thread {
  * UDP thread that specializes in sending packets to a target IP
  */
 class SendThread extends UDPThread {
-    //InetAddress toIP;
-    int index = 0;
-    Protocol[] outbound;
-
     /**
      * SendThreads can be instantiated without callbacks
      */
     public SendThread(InetAddress packet, Protocol[] outbound) { this(packet, outbound, null, null); }
     public SendThread(InetAddress packet, Protocol[] outbound, UDPCallback threadResponse, UDPCallback failedResponse) {
         super(packet, threadResponse, failedResponse);
-        this.outbound = outbound;
+        this.fragments = outbound;
     }
 
     @Override
     public void run() {
-        while (index < outbound.length) {
+        while (index < fragments.length) {
             try {
-                DatagramPacket packet = new DatagramPacket(outbound[index].getBytes(), Protocol.LENGTH, toIP, Connection.PORT);
+                DatagramPacket packet = new DatagramPacket(fragments[index].getBytes(), Protocol.LENGTH, toIP, Connection.PORT);
                 UDPConnection.instance.socket.send(packet);
-                Connection.log(outbound[index]);
+                Connection.log(fragments[index]);
 
                 if (!lock()) {
                     if (failed > Connection.MAXREPEAT) { return; }
@@ -231,8 +227,6 @@ class SendThread extends UDPThread {
  * UDP thread that specializes in receiving UDP packets
  */
 class ReceiveThread extends UDPThread {
-    protected Protocol[] fragments = new Protocol[0];
-
     public ReceiveThread(InetAddress fromIP) { this(fromIP, null, null); }
     public ReceiveThread(InetAddress fromIP, UDPCallback threadResponse, UDPCallback failedResponse) {
         super(fromIP, threadResponse, failedResponse);
@@ -247,15 +241,16 @@ class ReceiveThread extends UDPThread {
         }
 
         //System.out.println(fragments.length);
-        for (int i = 0; i < fragments.length; i++) {
+        while (index < fragments.length) {
             while (!lock()) {
                 if (failed > Connection.MAXREPEAT) { return; }
-                acknowledge(i);
+                System.out.println("Test");
+                acknowledge(index);
             }
 
-            fragments[i] = recent;
-            //System.out.println(i);
-            acknowledge(i + 1);
+            fragments[index] = recent;
+            System.out.println(index);
+            acknowledge(index + 1);
         }
 
         UDPConnection.closeThread(toIP);
@@ -272,7 +267,7 @@ class ReceiveThread extends UDPThread {
             Protocol response = Protocol.create(Protocol.Status.OK, Integer.toString(index))[0];
             DatagramPacket packet = new DatagramPacket(response.getBytes(), Protocol.LENGTH, toIP, Connection.PORT);
             UDPConnection.instance.socket.send(packet);
-            Connection.log("Acknowledged!");
+            Connection.log(response);
         } catch (Exception e) {
             System.out.println(e);
             //acknowledge();
@@ -281,9 +276,6 @@ class ReceiveThread extends UDPThread {
 
     @Override
     public void pass(Protocol protocol){
-        recent = protocol;
-        Connection.log(toIP, protocol);
-
         // Get leading packet; initialize size of fragments
         if (protocol.sequence == 0) {
             int length = Integer.parseInt(protocol.data);
@@ -291,7 +283,9 @@ class ReceiveThread extends UDPThread {
             acknowledge(Math.min(length, 1));
         }
 
-        unlock();
+        index = protocol.sequence;
+
+        super.pass(protocol);
     }
 }
 
@@ -301,7 +295,10 @@ class ReceiveThread extends UDPThread {
  */
 abstract class UDPThread extends Thread {
     protected static final Object threadMonitor = new Object();
+
     protected InetAddress toIP;
+    protected int index = 0;
+    protected Protocol[] fragments;
     protected Protocol recent;
 
     private boolean isNotified;
@@ -336,6 +333,7 @@ abstract class UDPThread extends Thread {
         if (!isNotified) {
             Connection.log("Received timeout");
             failed++;
+            if (failed > Connection.MAXREPEAT) { Connection.log("failed maximum exceeded"); }
             return false;
         }
 
