@@ -220,9 +220,7 @@ class SendThread extends UDPThread {
     @Override
     public void pass(Protocol protocol) {
         int sequence = Integer.parseInt(protocol.data);
-        if (!(sequence == index || sequence == index + 1)) { return; }
-
-        index++;
+        if (sequence == index || sequence == index + 1) { index++; }
 
         super.pass(protocol);
     }
