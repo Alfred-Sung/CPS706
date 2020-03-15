@@ -204,21 +204,23 @@ class SendThread extends UDPThread {
                 Connection.log(fragments[index]);
 
                 if (!lock()) {
-                    if (failed > Connection.MAXREPEAT) { return; }
+                    if (failed > Connection.MAXREPEAT) {
+                        close(failedResponse);
+                        return;
+                    }
                 }
             } catch (Exception e) {
                 Connection.log(e + " at " + e.getStackTrace()[0]);
             }
         }
 
-        UDPConnection.closeThread(toIP);
-        if (threadResponse != null) { threadResponse.invoke(toIP, recent, recent.data); }
-        UDPConnection.notifyThread();
+        close(threadResponse);
     }
 
     @Override
     public void pass(Protocol protocol) {
-        index = Integer.parseInt(protocol.data);
+        int sequence = Integer.parseInt(protocol.data);
+        if (sequence == index || sequence == index + 1) { index++; }
 
         super.pass(protocol);
     }
@@ -236,14 +238,23 @@ class ReceiveThread extends UDPThread {
     @Override
     public void run() {
         // Wait for leading packet; contains data to initialize fragments
-        while (!lock()) {
-            if (failed > Connection.MAXREPEAT) { return; }
-            acknowledge(0);
-        }
+        do {
+            while (!lock()) {
+                if (failed > Connection.MAXREPEAT) {
+                    close(failedResponse);
+                    return;
+                }
+                acknowledge(0);
+            }
+        // Ensure that the leading packet has been received
+        } while (recent.sequence != 0);
 
         while (index < fragments.length) {
             while (!lock()) {
-                if (failed > Connection.MAXREPEAT) { return; }
+                if (failed > Connection.MAXREPEAT) {
+                    close(failedResponse);
+                    return;
+                }
                 acknowledge(index);
             }
 
@@ -251,13 +262,7 @@ class ReceiveThread extends UDPThread {
             acknowledge(index + 1);
         }
 
-        UDPConnection.closeThread(toIP);
-        if (recent.status == Protocol.Status.ERROR) {
-            if (failedResponse != null) { failedResponse.invoke(toIP, recent, recent.data); }
-        } else {
-            if (threadResponse != null) { threadResponse.invoke(toIP, recent, Protocol.constructData(fragments)); }
-        }
-        UDPConnection.notifyThread();
+        close(threadResponse);
     }
 
     void acknowledge(int i) {
@@ -274,12 +279,15 @@ class ReceiveThread extends UDPThread {
 
     @Override
     public void pass(Protocol protocol) {
-        if (protocol.sequence < index) { return; }
         // Get leading packet; initialize size of fragments
         if (protocol.sequence == 0) {
             int length = Integer.parseInt(protocol.data);
             fragments = new Protocol[length];
             acknowledge(Math.min(length, 1));
+
+        // Discard packet if it is not the next
+        } else if (protocol.sequence != index + 1) {
+            return;
         }
 
         index = protocol.sequence;
@@ -346,5 +354,11 @@ abstract class UDPThread extends Thread {
     protected synchronized void unlock() {
         isNotified = true;
         notify();
+    }
+
+    protected void close(UDPCallback response) {
+        UDPConnection.closeThread(toIP);
+        if (response != null) { response.invoke(toIP, recent, Protocol.constructData(fragments)); }
+        UDPConnection.notifyThread();
     }
 }
