@@ -22,6 +22,8 @@ public class Server extends Connection {
                     directory.add(address, protocol);
                     break;
                 case OFFLINE:
+                    Connection.log("Removed user from directory");
+                    directory.remove(address, protocol);
                     break;
                 case QUERY:
                     UDP.send(address, Protocol.Status.OK, directory.print());
@@ -32,6 +34,8 @@ public class Server extends Connection {
 
                     if (other == null) {
                         UDP.send(address, Protocol.Status.ERROR, "No such user exists");
+                    } else if (client.IP.equals(other.IP)) {
+                        UDP.send(address, Protocol.Status.ERROR, "Cannot send invitation to self");
                     } else {
                         UDP.send(address, Protocol.Status.OK, other.getData());
                     }
@@ -39,11 +43,15 @@ public class Server extends Connection {
                     UDP.send(other.IP, Protocol.Status.JOIN, client.getData());
                     break;
                 case EXIT:
-                    Connection.log("Removed user from directory");
-                    directory.remove(address, protocol);
+
                     break;
-                default:
-                    UDP.send(address, Protocol.Status.ERROR);
+                case ACCEPT:
+                    Profile profile = directory.getProfile(data);
+                    UDP.send(profile.IP, Protocol.Status.ACCEPT);
+                    break;
+                case DECLINE:
+                    profile = directory.getProfile(data);
+                    UDP.send(profile.IP, Protocol.Status.DECLINE);
                     break;
             }
         }
@@ -56,12 +64,15 @@ public class Server extends Connection {
         UDP = new UDPConnection() {
             @Override
             public void keyNotFound(InetAddress address, Protocol protocol) {
+                // Discard incoming new OK/ERROR packets
+                if (protocol.status == Protocol.Status.OK || protocol.status == Protocol.Status.ERROR) { return; }
+
                 receive(address, protocol,
                         clientResponse,
                         new UDPCallback() {
                             @Override
                             public void invoke(InetAddress address, Protocol protocol, String data) {
-                                send(address, Protocol.Status.ERROR);
+                                send(address, Protocol.Status.ERROR, "");
                             }
                         }
                 );

@@ -7,25 +7,7 @@ import java.util.HashMap;
 public class ServerConnection extends Connection {
     static InetAddress serverAddress;
     private static UDPConnection UDP;
-
     private static Profile TCPServerProfile;
-    static UDPCallback response = new UDPCallback() {
-        @Override
-        public void invoke(InetAddress address, Protocol protocol, String data) {
-            switch (protocol.status) {
-                case JOIN:
-                    Profile profile = Profile.parse(data);
-                    Client.requestedClient = profile.IP;
-
-                    System.out.println(profile.nickname + " wants to chat");
-                    System.out.println("Type /accept or /decline");
-                    break;
-                default:
-                    UDP.send(address, Protocol.Status.ERROR);
-                    break;
-            }
-        }
-    };
 
     public ServerConnection() {
         VERBOSE = true;
@@ -33,11 +15,20 @@ public class ServerConnection extends Connection {
         UDP = new UDPConnection() {
             @Override
             public void keyNotFound(InetAddress address, Protocol protocol) {
-                if (!address.equals(serverAddress)) {
-                    send(address, Protocol.Status.ERROR);
-                } else {
+                if (!address.equals(serverAddress)) { return; }
+
+                if (protocol.status == Protocol.Status.JOIN) {
                     receive(address, protocol,
-                            response,
+                            new UDPCallback() {
+                                @Override
+                                public void invoke(InetAddress address, Protocol protocol, String data) {
+                                    Profile profile = Profile.parse(data);
+                                    Client.requestedClient = profile.IP;
+
+                                    System.out.println(profile.nickname + " wants to chat");
+                                    System.out.println("Type /accept or /decline");
+                                }
+                            },
                             new UDPCallback() {
                                 @Override
                                 public void invoke(InetAddress address, Protocol protocol, String data) {
@@ -51,6 +42,7 @@ public class ServerConnection extends Connection {
     }
 
     public void send(InetAddress address, Protocol.Status status) { UDP.awaitSend(address, status); }
+    public void send(InetAddress address, Protocol.Status status, String message) { UDP.awaitSend(address, status, message); }
 
     public boolean connect(String serverIP) {
         try {
@@ -79,21 +71,30 @@ public class ServerConnection extends Connection {
 
     public void printDirectory() {
         try {
-            UDP.awaitSend(serverAddress, Protocol.Status.QUERY);
-            UDP.awaitReceive(serverAddress,
+            UDP.awaitSend(serverAddress, Protocol.Status.QUERY,
                     new UDPCallback() {
                         @Override
-                        public void invoke(InetAddress address, Protocol protocol, String data) { System.out.println(data); }
+                        public void invoke(InetAddress address, Protocol protocol, String data) {
+                            UDP.awaitReceive(serverAddress,
+                                    new UDPCallback() {
+                                        @Override
+                                        public void invoke(InetAddress address, Protocol protocol, String data) {
+                                            System.out.println(data);
+                                            System.out.println("Type /join <user> to join a chat");
+                                        }
+                                    },
+                                    new UDPCallback() {
+                                        @Override
+                                        public void invoke(InetAddress address, Protocol protocol, String data) { System.out.println("Error"); }
+                                    }
+                            );
+                        }
                     },
-                    new UDPCallback() {
-                        @Override
-                        public void invoke(InetAddress address, Protocol protocol, String data) { System.out.println("Error"); }
-                    }
+                    null
             );
         } catch (Exception e) {
             System.out.println(e + " at " + e.getStackTrace()[0]);
         }
-        System.out.println("Type /join <user> to join a chat");
     }
 
     public void joinChat(String peerIP) {
@@ -111,7 +112,7 @@ public class ServerConnection extends Connection {
 
                             System.out.println("Waiting for " + TCPServerProfile.nickname + " to accept");
 
-                            UDP.awaitReceive(TCPServerProfile.IP,
+                            UDP.awaitReceive(serverAddress,
                                     new UDPCallback() {
                                         @Override
                                         public void invoke(InetAddress address, Protocol protocol, String data) {

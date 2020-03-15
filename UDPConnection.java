@@ -16,8 +16,9 @@ import java.util.concurrent.TimeoutException;
 // TODO: Implement packet timeout/resending
 interface UDPCallback { void invoke(InetAddress address, Protocol protocol, String data); }
 public abstract class UDPConnection extends Thread {
+    public static UDPConnection instance;
     public static final Object UDPMonitor = new Object();
-    public static DatagramSocket socket;
+    public DatagramSocket socket;
 
     // Each UDP request is identified by it's sender IP and holds a queue of threads waiting to be executed
     // Each IP's thread can only be executed one at a time before it is dequeued
@@ -65,7 +66,10 @@ public abstract class UDPConnection extends Thread {
         synchronized (UDPMonitor) { UDPMonitor.notify(); }
     }
 
-    public UDPConnection() { this.start(); }
+    public UDPConnection() {
+        instance = this;
+        this.start();
+    }
 
     /**
      * UDPConnection runs as its own thread because we want it to constantly check for incoming UDP packets
@@ -101,8 +105,8 @@ public abstract class UDPConnection extends Thread {
      */
     public void send(InetAddress toIP, Protocol.Status status, String message) { send(toIP, Protocol.create(status, message), null, null); }
     public void send(InetAddress toIP, Protocol.Status status, String message, UDPCallback threadResponse, UDPCallback failResponse) { send(toIP, Protocol.create(status, message), threadResponse, failResponse); }
-    public void send(InetAddress toIP, Protocol.Status status) { send(toIP, Protocol.create(status), null, null); }
-    public void send(InetAddress toIP, Protocol.Status status, UDPCallback threadResponse, UDPCallback failResponse) { send(toIP, Protocol.create(status), threadResponse, failResponse); }
+    public void send(InetAddress toIP, Protocol.Status status) { send(toIP, Protocol.create(status, 0), null, null); }
+    public void send(InetAddress toIP, Protocol.Status status, UDPCallback threadResponse, UDPCallback failResponse) { send(toIP, Protocol.create(status, 0), threadResponse, failResponse); }
 
     private void send(InetAddress toIP, Protocol[] fragments, UDPCallback threadResponse, UDPCallback failResponse) {
         UDPThread thread = new SendThread(toIP, fragments, threadResponse, failResponse);
@@ -114,8 +118,8 @@ public abstract class UDPConnection extends Thread {
      */
     public void awaitSend(InetAddress toIP, Protocol.Status status, String message) { awaitSend(toIP, Protocol.create(status, message), null, null); }
     public void awaitSend(InetAddress toIP, Protocol.Status status, String message, UDPCallback threadResponse, UDPCallback failResponse) { awaitSend(toIP, Protocol.create(status, message), threadResponse, failResponse); }
-    public void awaitSend(InetAddress toIP, Protocol.Status status) { awaitSend(toIP, Protocol.create(status), null, null); }
-    public void awaitSend(InetAddress toIP, Protocol.Status status, UDPCallback threadResponse, UDPCallback failResponse) { awaitSend(toIP, Protocol.create(status), threadResponse, failResponse); }
+    public void awaitSend(InetAddress toIP, Protocol.Status status) { awaitSend(toIP, Protocol.create(status, 0), null, null); }
+    public void awaitSend(InetAddress toIP, Protocol.Status status, UDPCallback threadResponse, UDPCallback failResponse) { awaitSend(toIP, Protocol.create(status, 0), threadResponse, failResponse); }
 
 
     private void awaitSend(InetAddress toIP, Protocol[] fragments, UDPCallback threadResponse, UDPCallback failResponse) {
@@ -182,49 +186,43 @@ public abstract class UDPConnection extends Thread {
  * UDP thread that specializes in sending packets to a target IP
  */
 class SendThread extends UDPThread {
-    InetAddress toIP;
-    Protocol[] outbound;
-
     /**
      * SendThreads can be instantiated without callbacks
      */
     public SendThread(InetAddress packet, Protocol[] outbound) { this(packet, outbound, null, null); }
     public SendThread(InetAddress packet, Protocol[] outbound, UDPCallback threadResponse, UDPCallback failedResponse) {
         super(packet, threadResponse, failedResponse);
-        this.outbound = outbound;
+        this.fragments = outbound;
     }
 
     @Override
     public void run() {
-        for (int i = 0; i < outbound.length; i++) {
+        while (index < fragments.length) {
             try {
-                DatagramPacket packet = new DatagramPacket(outbound[i].getBytes(), Protocol.LENGTH, address, Connection.PORT);
-                UDPConnection.socket.send(packet);
-                Connection.log(outbound[i]);
+                DatagramPacket packet = new DatagramPacket(fragments[index].getBytes(), Protocol.LENGTH, toIP, Connection.PORT);
+                UDPConnection.instance.socket.send(packet);
+                Connection.log(fragments[index]);
 
-                //Connection.socket.setSoTimeout(Connection.TIMEOUT);
-                lock();
-
-                switch (recent.status) {
-                    case OK:
-                        break;
-                    default:
-                        i--;
-                        if (fail()) { return; };
-                        break;
+                if (!lock()) {
+                    if (failed > Connection.MAXREPEAT) {
+                        close(failedResponse);
+                        return;
+                    }
                 }
             } catch (Exception e) {
                 Connection.log(e + " at " + e.getStackTrace()[0]);
-
-                i--;
-                if (fail()) { return; };
             }
         }
 
-        // TODO: Prevent thread locking
-        UDPConnection.closeThread(address);
-        if (threadResponse != null) { threadResponse.invoke(address, recent, recent.data); }
-        UDPConnection.notifyThread();
+        close(threadResponse);
+    }
+
+    @Override
+    public void pass(Protocol protocol) {
+        int sequence = Integer.parseInt(protocol.data);
+        if (sequence >= index) { index = sequence; }
+
+        super.pass(protocol);
     }
 }
 
@@ -232,8 +230,6 @@ class SendThread extends UDPThread {
  * UDP thread that specializes in receiving UDP packets
  */
 class ReceiveThread extends UDPThread {
-    protected Protocol[] fragments = new Protocol[0];
-
     public ReceiveThread(InetAddress fromIP) { this(fromIP, null, null); }
     public ReceiveThread(InetAddress fromIP, UDPCallback threadResponse, UDPCallback failedResponse) {
         super(fromIP, threadResponse, failedResponse);
@@ -241,50 +237,64 @@ class ReceiveThread extends UDPThread {
 
     @Override
     public void run() {
-        lock();
+        // Wait for leading packet; contains data to initialize fragments
+        do {
+            while (!lock()) {
+                if (failed > Connection.MAXREPEAT) {
+                    close(failedResponse);
+                    return;
+                }
+                acknowledge(index);
+            }
+        // Ensure that the leading packet has been received
+        } while (recent.sequence != 0);
 
-        //System.out.println(fragments.length);
-        for (int i = 0; i < fragments.length; i++) {
-            lock();
+        while (index < fragments.length) {
+            while (!lock() || index == 0) {
+                if (failed > Connection.MAXREPEAT) {
+                    close(failedResponse);
+                    return;
+                }
+                acknowledge(index);
+            }
 
-            fragments[i] = recent;
-            acknowledge();
+            fragments[index - 1] = recent;
+            acknowledge(index + 1);
         }
 
-        // TODO: Prevent thread locking
-        UDPConnection.closeThread(address);
-        if (recent.status == Protocol.Status.ERROR) {
-            if (failedResponse != null) { failedResponse.invoke(address, recent, recent.data); }
-        } else {
-            if (threadResponse != null) { threadResponse.invoke(address, recent, Protocol.constructData(fragments)); }
-        }
-        UDPConnection.notifyThread();
+        close(threadResponse);
     }
 
-    // TODO: Handle packet resending
-    void acknowledge() {
+    void acknowledge(int i) {
         try {
-            Connection.log("Acknowledged!");
-            Protocol response = Protocol.create(Protocol.Status.OK)[0];
-            DatagramPacket packet = new DatagramPacket(response.getBytes(), Protocol.LENGTH, address, Connection.PORT);
-            UDPConnection.socket.send(packet);
-            //Connection.socket.setSoTimeout(Connection.TIMEOUT);
+            Protocol response = Protocol.create(Protocol.Status.OK, i)[0];
+            DatagramPacket packet = new DatagramPacket(response.getBytes(), Protocol.LENGTH, toIP, Connection.PORT);
+            UDPConnection.instance.socket.send(packet);
+            Connection.log(response);
         } catch (Exception e) {
-
+            System.out.println(e);
+            //acknowledge();
         }
     }
 
     @Override
-    public void pass(Protocol protocol){
-        recent = protocol;
-        Connection.log(address, protocol);
-
+    public void pass(Protocol protocol) {
+        // Get leading packet; initialize size of fragments
         if (protocol.sequence == 0) {
-            fragments = new Protocol[Integer.parseInt(protocol.data)];
-            acknowledge();
+            int length = Integer.parseInt(protocol.data);
+            fragments = new Protocol[length];
+            acknowledge(1);
+
+        // Discard packet if it is not the next
+        } else if (protocol.sequence != index + 1) {
+            //System.out.println("Wrong sequence number; index: " + index + " expected: " + (index + 1) + " got: " + protocol.sequence);
+            return;
         }
 
-        unlock();
+        index = protocol.sequence;
+        //System.out.println("index: " + index);
+
+        super.pass(protocol);
     }
 }
 
@@ -294,10 +304,14 @@ class ReceiveThread extends UDPThread {
  */
 abstract class UDPThread extends Thread {
     protected static final Object threadMonitor = new Object();
-    protected InetAddress address;
+
+    protected InetAddress toIP;
+    protected int index = 0;
+    protected Protocol[] fragments = new Protocol[0];
     protected Protocol recent;
 
-    protected boolean isLocked = true;
+    //private boolean isLocked = true;
+    private boolean isNotified;
 
     UDPCallback threadResponse;
     UDPCallback failedResponse;
@@ -305,7 +319,7 @@ abstract class UDPThread extends Thread {
     int failed = 0;
 
     public UDPThread(InetAddress address, UDPCallback threadResponse, UDPCallback failedResponse) {
-        this.address = address;
+        this.toIP = address;
         this.threadResponse = threadResponse;
         this.failedResponse = failedResponse;
     }
@@ -313,34 +327,40 @@ abstract class UDPThread extends Thread {
     public void pass(Protocol protocol){
         synchronized (threadMonitor) {
             recent = protocol;
-            Connection.log(address, protocol);
+            Connection.log(toIP, protocol);
 
             unlock();
         }
     }
 
-    protected boolean fail() {
-        failed++;
-        if (failed > Connection.MAXREPEAT) {
-            if (failedResponse != null) { failedResponse.invoke(address, recent, recent.data); }
-            UDPConnection.closeThread(address);
-            return true;
+    protected synchronized boolean lock() {
+        if (!isNotified) {
+            try {
+                wait(Connection.TIMEOUT);
+            } catch (Exception e) {
+                System.out.println(e);
+            }
+
+            if (!isNotified) {
+                Connection.log("Received timeout");
+                failed++;
+                if (failed > Connection.MAXREPEAT) { Connection.log("Failed maximum exceeded"); }
+                return false;
+            }
         }
 
-        return false;
-    }
-
-    protected synchronized void lock() {
-        try {
-            while (isLocked) { wait(); }
-            isLocked = true;
-        } catch (Exception e) {
-
-        }
+        isNotified = false;
+        return true;
     }
 
     protected synchronized void unlock() {
-        isLocked = false;
+        isNotified = true;
         notify();
+    }
+
+    protected void close(UDPCallback response) {
+        UDPConnection.closeThread(toIP);
+        if (response != null) { response.invoke(toIP, recent, Protocol.constructData(fragments)); }
+        UDPConnection.notifyThread();
     }
 }

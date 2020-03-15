@@ -22,7 +22,7 @@ public class Protocol {
      * Methods to create Protocol packets
      * Automatically handles splitting
      */
-    public static Protocol[] create(Status status) { return new Protocol[] { new Protocol(status, 0, "0") }; }
+    public static Protocol[] create(Status status, int sequence) { return new Protocol[] { new Protocol(status, 0, Integer.toString(sequence)) }; }
     public static Protocol[] create(byte[] data) { return new Protocol[] { new Protocol(data) }; }
     public static Protocol[] create(Status status, String data) { return split(status, data); }
 
@@ -76,28 +76,38 @@ public class Protocol {
         this.status = Status.valueOf(buffer.getInt(0));
         this.sequence = buffer.getInt(4);
 
+        buffer.position(16);
         byte[] hostNameBytes = new byte[16];
-        buffer.get(8, hostNameBytes, 0, hostNameBytes.length);
+        buffer.get(hostNameBytes);
         this.hostName = new String(hostNameBytes).trim();
 
+        buffer.position(24);
         byte[] nickNameBytes = new byte[16];
-        buffer.get(24, nickNameBytes, 0, nickNameBytes.length);
+        buffer.get(nickNameBytes);
         this.nickName = new String(nickNameBytes).trim();
 
+        buffer.position(40);
         byte[] dataBytes = new byte[40];
-        buffer.get(40, dataBytes, 0, dataBytes.length);
+        buffer.get(dataBytes);
         this.data = new String(dataBytes).trim();
     }
 
     public byte[] getBytes(){
         ByteBuffer result = ByteBuffer.allocate(LENGTH);
-        result.putInt(0, status.getValue());
-        result.putInt(4, sequence);
+        result.position(0);
+        result.putInt(status.getValue());
 
-        result.put(8, hostName.getBytes());
-        result.put(24, nickName.getBytes());
+        result.position(4);
+        result.putInt(sequence);
 
-        result.put(40, data.getBytes());
+        result.position(8);
+        result.put(hostName.getBytes());
+
+        result.position(24);
+        result.put(nickName.getBytes());
+
+        result.position(40);
+        result.put(data.getBytes());
 
         return result.array();
     }
