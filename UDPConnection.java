@@ -214,6 +214,8 @@ class SendThread extends UDPThread {
             }
         }
 
+        acknowledge(fragments.length + 1);
+
         close(threadResponse);
     }
 
@@ -262,19 +264,18 @@ class ReceiveThread extends UDPThread {
             acknowledge(index + 1);
         }
 
-        close(threadResponse);
-    }
+        do {
+            while (!lock()) {
+                if (failed > Connection.MAXREPEAT) {
+                    close(failedResponse);
+                    return;
+                }
+                acknowledge(index);
+            }
+            // Ensure that the last packet has been received
+        } while (recent.sequence != fragments.length + 1);
 
-    void acknowledge(int i) {
-        try {
-            Protocol response = Protocol.create(Protocol.Status.OK, i)[0];
-            DatagramPacket packet = new DatagramPacket(response.getBytes(), Protocol.LENGTH, toIP, Connection.PORT);
-            UDPConnection.instance.socket.send(packet);
-            Connection.log(response);
-        } catch (Exception e) {
-            System.out.println(e);
-            //acknowledge();
-        }
+        close(threadResponse);
     }
 
     @Override
@@ -330,6 +331,18 @@ abstract class UDPThread extends Thread {
             Connection.log(toIP, protocol);
 
             unlock();
+        }
+    }
+
+    protected void acknowledge(int i) {
+        try {
+            Protocol response = Protocol.create(Protocol.Status.OK, i)[0];
+            DatagramPacket packet = new DatagramPacket(response.getBytes(), Protocol.LENGTH, toIP, Connection.PORT);
+            UDPConnection.instance.socket.send(packet);
+            Connection.log(response);
+        } catch (Exception e) {
+            System.out.println(e);
+            //acknowledge();
         }
     }
 

@@ -15,27 +15,35 @@ public class ServerConnection extends Connection {
         UDP = new UDPConnection() {
             @Override
             public void keyNotFound(InetAddress address, Protocol protocol) {
-                if (!address.equals(serverAddress)) { return; }
+                if (!address.equals(serverAddress)) {
+                    return;
+                }
 
-                if (protocol.status == Protocol.Status.JOIN) {
-                    receive(address, protocol,
-                            new UDPCallback() {
-                                @Override
-                                public void invoke(InetAddress address, Protocol protocol, String data) {
-                                    Profile profile = Profile.parse(data);
-                                    Client.requestedClient = profile.IP;
+                switch (protocol.status) {
+                    case JOIN:
+                        receive(address, protocol,
+                                new UDPCallback() {
+                                    @Override
+                                    public void invoke(InetAddress address, Protocol protocol, String data) {
+                                        Profile profile = Profile.parse(data);
+                                        Client.requestedClient = profile;
 
-                                    System.out.println(profile.nickname + " wants to chat");
-                                    System.out.println("Type /accept or /decline");
+                                        System.out.println(profile.nickname + " wants to chat");
+                                        System.out.println("Type /accept or /decline");
+                                    }
+                                },
+                                new UDPCallback() {
+                                    @Override
+                                    public void invoke(InetAddress address, Protocol protocol, String data) {
+                                        send(address, Protocol.Status.ERROR);
+                                    }
                                 }
-                            },
-                            new UDPCallback() {
-                                @Override
-                                public void invoke(InetAddress address, Protocol protocol, String data) {
-                                    send(address, Protocol.Status.ERROR);
-                                }
-                            }
-                    );
+                        );
+                        break;
+                    case ACCEPT:
+                        System.out.println(Client.requestedClient.nickname + " accepted your invite!");
+                    case DECLINE:
+                        System.out.println(Client.requestedClient.nickname + " declined your invite!");
                 }
             }
         };
@@ -111,22 +119,6 @@ public class ServerConnection extends Connection {
                             }
 
                             System.out.println("Waiting for " + TCPServerProfile.nickname + " to accept");
-
-                            UDP.awaitReceive(serverAddress,
-                                    new UDPCallback() {
-                                        @Override
-                                        public void invoke(InetAddress address, Protocol protocol, String data) {
-                                            switch(protocol.status) {
-                                                // TODO: Pass IP to TCPConnection
-                                                case ACCEPT:
-                                                    break;
-                                                case DECLINE:
-                                                    break;
-                                            }
-                                        }
-                                    },
-                                    null
-                            );
                         }
                     },
                     null
