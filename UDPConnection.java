@@ -220,7 +220,7 @@ class SendThread extends UDPThread {
     @Override
     public void pass(Protocol protocol) {
         int sequence = Integer.parseInt(protocol.data);
-        if (sequence == index || sequence == index + 1) { index++; }
+        if (sequence >= index) { index = sequence; }
 
         super.pass(protocol);
     }
@@ -244,13 +244,13 @@ class ReceiveThread extends UDPThread {
                     close(failedResponse);
                     return;
                 }
-                acknowledge(0);
+                acknowledge(index);
             }
         // Ensure that the leading packet has been received
         } while (recent.sequence != 0);
 
         while (index < fragments.length) {
-            while (!lock()) {
+            while (!lock() || index == 0) {
                 if (failed > Connection.MAXREPEAT) {
                     close(failedResponse);
                     return;
@@ -283,14 +283,16 @@ class ReceiveThread extends UDPThread {
         if (protocol.sequence == 0) {
             int length = Integer.parseInt(protocol.data);
             fragments = new Protocol[length];
-            acknowledge(Math.min(length, 1));
+            acknowledge(1);
 
         // Discard packet if it is not the next
         } else if (protocol.sequence != index + 1) {
+            //System.out.println("Wrong sequence number; index: " + index + " expected: " + (index + 1) + " got: " + protocol.sequence);
             return;
         }
 
         index = protocol.sequence;
+        //System.out.println("index: " + index);
 
         super.pass(protocol);
     }
