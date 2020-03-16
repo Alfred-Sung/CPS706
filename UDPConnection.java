@@ -197,24 +197,25 @@ class SendThread extends UDPThread {
 
     @Override
     public void run() {
-        while (index < fragments.length) {
-            try {
-                DatagramPacket packet = new DatagramPacket(fragments[index].getBytes(), Protocol.LENGTH, toIP, Connection.PORT);
-                UDPConnection.instance.socket.send(packet);
-                Connection.log(fragments[index]);
+        do {
+            while (index < fragments.length) {
+                try {
+                    DatagramPacket packet = new DatagramPacket(fragments[index].getBytes(), Protocol.LENGTH, toIP, Connection.PORT);
+                    UDPConnection.instance.socket.send(packet);
+                    Connection.log(fragments[index]);
 
-                if (!lock()) {
-                    if (failed > Connection.MAXREPEAT) {
-                        close(failedResponse);
-                        return;
+                    if (!lock()) {
+                        if (failed > Connection.MAXREPEAT) {
+                            close(failedResponse);
+                            return;
+                        }
                     }
+                } catch (Exception e) {
+                    Connection.log(e + " at " + e.getStackTrace()[0]);
                 }
-            } catch (Exception e) {
-                Connection.log(e + " at " + e.getStackTrace()[0]);
             }
-        }
 
-        acknowledge(fragments.length + 1);
+        } while (!closeConnection());
 
         close(threadResponse);
     }
@@ -251,29 +252,21 @@ class ReceiveThread extends UDPThread {
         // Ensure that the leading packet has been received
         } while (recent.sequence != 0);
 
-        while (index < fragments.length) {
-            while (!lock() || index == 0) {
-                if (failed > Connection.MAXREPEAT) {
-                    close(failedResponse);
-                    return;
-                }
-                acknowledge(index);
-            }
-
-            fragments[index - 1] = recent;
-            acknowledge(index + 1);
-        }
-
         do {
-            while (!lock()) {
-                if (failed > Connection.MAXREPEAT) {
-                    close(failedResponse);
-                    return;
+            while (index < fragments.length || recent.status != Protocol.Status.FINAL) {
+                while (!lock() || index == 0) {
+                    if (failed > Connection.MAXREPEAT) {
+                        close(failedResponse);
+                        return;
+                    }
+                    acknowledge(index);
                 }
-                acknowledge(index);
+
+                fragments[index - 1] = recent;
+                acknowledge(index + 1);
             }
-            // Ensure that the last packet has been received
-        } while (recent.sequence != fragments.length + 1);
+
+        } while (!closeConnection());
 
         close(threadResponse);
     }
@@ -371,6 +364,34 @@ abstract class UDPThread extends Thread {
         notify();
     }
 
+    /**
+     * Attempts to close the connection
+     * @return - Whether closing the connection was successful
+     */
+    protected boolean closeConnection() {
+        try {
+            Protocol fin = Protocol.create(Protocol.Status.FINAL, 0)[0];
+            DatagramPacket packet = new DatagramPacket(fin.getBytes(), Protocol.LENGTH, toIP, Connection.PORT);
+            UDPConnection.instance.socket.send(packet);
+            Connection.log(fragments[index]);
+
+            if (!lock()) {
+                if (failed > Connection.MAXREPEAT) {
+                    close(failedResponse);
+                    return false;
+                }
+            }
+
+            if (recent.status != Protocol.Status.FINAL) { return false; }
+        } catch (Exception e) {}
+
+        return true;
+    }
+
+    /**
+     * Closes the thread and
+     * @param response
+     */
     protected void close(UDPCallback response) {
         UDPConnection.closeThread(toIP);
         if (response != null) { response.invoke(toIP, recent, Protocol.constructData(fragments)); }

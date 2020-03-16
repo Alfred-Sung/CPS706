@@ -126,7 +126,7 @@ public class Protocol {
      */
     public enum Status {
         // General status codes
-        OK(200), ERROR(400),
+        OK(200), ERROR(400), FINAL(7),
         // Client to Server status codes
         ONLINE(0), OFFLINE(1), JOIN(2), EXIT(3), QUERY(4), ACCEPT(5), DECLINE(6);
 
